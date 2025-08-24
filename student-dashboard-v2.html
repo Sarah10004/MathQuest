@@ -1,0 +1,3621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathQuest - 학생 대시보드 v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            /* 톤앤매너: 밝은 그레이, 파랑/민트/핑크 포인트 */
+            --bg: #f6f7f9;
+            --card: #ffffff;
+            --ink: #1f2937; /* slate-800 */
+            --muted: #6b7280; /* slate-500 */
+            --primary: #3663ff; /* blue */
+            --mint: #3dd4c5; /* mint/teal */
+            --pink: #ff6ab7; /* pink */
+            --ring: rgba(54, 99, 255, .25);
+            --chip: #eef2ff; /* soft indigo */
+            --chip-ink: #374151;
+            --chip-active: #dbeafe; /* light blue */
+            --shadow: 0 8px 24px rgba(31,41,55,.08);
+            --radius: 18px;
+            --radius-sm: 12px;
+            --radius-lg: 26px;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+        }
+        
+        .progress-bar {
+            background: #eef2f7;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--mint));
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-shadow {
+            box-shadow: var(--shadow);
+            border-radius: var(--radius);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary), var(--mint));
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 14px rgba(54, 99, 255, 0.25);
+        }
+        
+        .btn-outline {
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: var(--ink);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-outline:hover {
+            border-color: var(--primary);
+            background: var(--chip);
+        }
+        
+        .hover-scale {
+            transition: transform 0.2s ease;
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        
+        /* 경매 튜토리얼 스타일 */
+        .slide {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .slide.hidden {
+            opacity: 0;
+            transform: translateX(20px);
+            pointer-events: none;
+        }
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .quiz-choice {
+            transition: all 0.2s ease;
+        }
+        .quiz-choice:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .quiz-choice.correct {
+            background: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #166534 !important;
+        }
+        .quiz-choice.incorrect {
+            background: #fef2f2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+        }
+        .page-indicators .active {
+            background: #3b82f6 !important;
+            transform: scale(1.2) !important;
+        }
+        .page-indicators div {
+            transition: all 0.3s ease;
+        }
+        
+        /* 경매 튜토리얼 버튼 스타일 */
+        .tutorial-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .tutorial-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+        }
+        .tutorial-btn:hover::before {
+            left: 100%;
+        }
+        .tutorial-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* —— 경매장 라이브 참여자 시각화 스타일 —— */
+        .seat-item {
+            position: relative;
+            width: 200px;
+            margin: 0 8px;
+            text-align: center;
+        }
+        
+        .seat-item img {
+            width: 160px;
+            height: 160px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+        
+        .seat-item img:hover {
+            transform: scale(1.05);
+        }
+        
+        .nameplate {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -30px;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 500;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .bubble {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -28px;
+            background: #111827;
+            color: #fff;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            box-shadow: 0 6px 14px rgba(17,23,41,.2);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .bubble.show {
+            animation: popfade .9s ease;
+        }
+        
+        @keyframes popfade {
+            0% { opacity: 0; transform: translate(-50%,-8px) scale(.9); }
+            25% { opacity: 1; transform: translate(-50%,0) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        .crown {
+            position: absolute;
+            right: -6px;
+            top: -10px;
+            font-size: 15px;
+            transform: rotate(-10deg);
+        }
+        
+        /* —— 경매사 연단 —— */
+        .auctioneer {
+            position: relative;
+            width: 150px;
+            margin: 0 auto;
+        }
+        
+        .podiumTop {
+            width: 150px;
+            height: 24px;
+            background: #915b2d;
+            border: 4px solid #000;
+            border-bottom-width: 6px;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .podium {
+            width: 150px;
+            height: 60px;
+            background: #c88f5a;
+            border: 4px solid #000;
+            border-top-width: 0;
+            border-bottom-width: 10px;
+            border-radius: 0 0 12px 12px;
+            position: relative;
+        }
+        
+        .podium .label {
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            top: 14px;
+            height: 28px;
+            background: #fff;
+            border: 4px solid #231f20;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+        }
+        
+        .gavel {
+            position: absolute;
+            right: -8px;
+            top: -14px;
+            font-size: 20px;
+            transform: rotate(-20deg);
+        }
+        
+        .auct-bubble {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -46px;
+            background: #111827;
+            
+        /* 새로운 책상과 의자 스타일 */
+        .desk-chair {
+            position: relative;
+            width: 80px;
+            height: 60px;
+            margin: 0 8px;
+        }
+        
+        .desk {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+            border-radius: 8px 8px 4px 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .chair {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 20px;
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+            border-radius: 4px 4px 0 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .student-avatar {
+            position: absolute;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            border: 2px solid white;
+        }
+        
+        .nameplate {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 500;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .crown {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 16px;
+            height: 16px;
+            background: #fbbf24;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #92400e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            opacity: 0;
+        }
+        
+        .auct-bubble.show {
+            animation: popfade 1s ease;
+        }
+        
+        /* 새로운 디자인 요소들 */
+        .soft-blob {
+            position: relative;
+            height: 4rem;
+        }
+        
+        .blob-1 {
+            position: absolute;
+            left: -0.25rem;
+            top: 0.25rem;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: #ffd5ef;
+        }
+        
+        .blob-2 {
+            position: absolute;
+            left: 4rem;
+            top: -0.25rem;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 40%;
+            background: #cfe9ff;
+            transform: rotate(12deg);
+        }
+        
+        .blob-3 {
+            position: absolute;
+            left: 7rem;
+            top: 1.5rem;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 14px;
+            background: #b7f7ec;
+        }
+        
+        .donut-chart {
+            width: 9rem;
+            height: 9rem;
+            margin: 0 auto;
+        }
+        
+        .floating-assistant {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            border: 2rem solid #e3f0ff;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            background: radial-gradient(circle at 30% 30%, #e2ebff, #f1fff9);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .floating-assistant:hover {
+            transform: scale(1.1);
+        }
+        
+        .assistant-dot {
+            width: 0.875rem;
+            height: 0.875rem;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #3663ff, #3dd4c5, #ff6ab7, #3663ff);
+        }
+
+        /* Avatar Shop Styles */
+        .avatar-category-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            border: 2px solid transparent;
+        }
+
+        .avatar-category-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .avatar-category-btn:not(.active) {
+            background: white;
+            color: var(--muted);
+            border-color: #e5e7eb;
+        }
+
+        .avatar-category-btn:not(.active):hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .avatar-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .avatar-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(54, 99, 255, 0.15);
+        }
+
+        .avatar-item.selected {
+            border-color: var(--primary);
+            background: #f0f4ff;
+        }
+
+        .avatar-item.owned {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        /* 진행 중 과제 카드 고도화 스타일 */
+        .chip {
+            --c: #e2e8f0;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            font-weight: 700;
+            background: #fff;
+            box-shadow: 0 6px 16px rgba(15,23,42,.06);
+            border: 1px solid var(--c);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .chip[data-amber] {
+            --c: #f59e0b40;
+            background: linear-gradient(180deg,#fff7ed,#fff);
+            border-color: #f59e0b40;
+        }
+        .chip[data-ghost] {
+            background: transparent;
+            border-color: #e5e7eb;
+        }
+        .chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(15,23,42,.1);
+        }
+        .seg {
+            position: relative;
+            height: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(156, 163, 175, 0.3);
+            box-shadow: none;
+        }
+        .seg-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 100%;
+            background: linear-gradient(90deg, #8B5CF6, #6366F1, #22D3EE);
+            box-shadow: 0 0 12px rgba(34, 211, 238, .45);
+            transition: width 0.9s cubic-bezier(.2,.9,.2,1);
+            border-radius: 8px;
+        }
+        .seg-icon {
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translate(0, -50%);
+            opacity: 0.9;
+        }
+        .seg.done {
+            background: transparent;
+            box-shadow: none;
+        }
+        .seg.done .seg-fill {
+            background: linear-gradient(90deg, #34D399, #10B981);
+            box-shadow: 0 0 12px rgba(34, 211, 238, .45);
+            border-radius: 8px;
+        }
+        .kpi {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            color: #1e293b;
+        }
+
+        .avatar-item.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .avatar-item.locked:hover {
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen" style="background: var(--bg);">
+    <div class="p-6 pb-24">
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-6">
+            <h1 class="text-xl font-bold" style="color: var(--primary);">MathQuest</h1>
+            <div class="flex items-center space-x-4">
+                <a href="https://polypad.amplify.com/p#polygons" target="_blank" class="group">
+                    <div class="relative">
+                        <img src="assets/icon_geoboard.svg" class="w-7 h-7 text-indigo-600 group-hover:text-indigo-700 transition-colors duration-200" alt="지오보드 수학 교구">
+                        <!-- 강조 효과 -->
+                        <div class="absolute inset-0 bg-indigo-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10 scale-150"></div>
+                        <!-- 툴팁 -->
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                            수학 교구
+                            <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-indigo-600"></div>
+                        </div>
+                    </div>
+                </a>
+                <div class="w-9 h-9 bg-indigo-200 rounded-full"></div>
+            </div>
+        </header>
+
+        <!-- Hero / Summary Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Left: Avatar + Greeting -->
+            <div class="card-shadow bg-white">
+                <div class="p-6">
+                    <div class="flex items-start justify-between">
+                        <!-- Student Avatar -->
+                        <div class="mr-6 flex flex-col items-center">
+                            <div class="relative">
+                                <div class="w-48 h-48 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                                    <img src="assets/tennis_pet_transparent.svg" class="w-24 h-24" alt="테니스 펫 아바타">
+                                </div>
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <button class="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 hover:bg-blue-600 rounded-full border-2 border-white flex items-center justify-center shadow-lg transition-colors" onclick="openAvatarShop()" title="아바타 변경">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-[12px] font-medium text-slate-700 mt-2">지민</p>
+                        </div>
+                        
+                        <div class="flex-1">
+                            <h2 class="text-[20px] font-extrabold leading-snug">
+                                지민의 오늘 과제는 <span style="color: var(--primary);">개수 세기</span>예요. 1단원 <span style="color: var(--primary);">단원 평가</span>에 응시하세요.
+                            </h2>
+                            <p class="text-[13px] text-slate-600 mt-3">
+                                짧고 집중되는 카드형 과제와 게임형 연습으로 몰입을 높여볼까요?
+                            </p>
+
+                            <!-- soft blobs for playful tone -->
+                            <div class="soft-blob mt-4">
+                                <div class="blob-1"></div>
+                                <div class="blob-2"></div>
+                                <div class="blob-3"></div>
+                            </div>
+
+                            <div class="mt-4 flex flex-wrap gap-6 text-[13px] text-slate-700">
+                                <div class="space-y-1">
+                                    <p class="text-slate-500">오늘의 과제</p>
+                                    <p class="text-lg font-extrabold">2개</p>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="text-slate-500">포인트</p>
+                                    <p class="text-lg font-extrabold text-yellow-500">1,240</p>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="text-slate-500">아이템</p>
+                                    <p class="text-lg font-extrabold text-pink-500">7개</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Progress stats -->
+            <div class="grid grid-cols-1 gap-3">
+                <div class="card-shadow bg-gradient-to-br from-[#4f6bff] to-[#2850ff] border-0">
+                    <div class="p-4">
+                        <!-- Header -->
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-[14px] font-extrabold text-white">진행 중 과제</h3>
+                                <span id="totalPct" class="ml-2 text-blue-200 font-extrabold text-[10px]">(3개 중 진행률 50%)</span>
+                            </div>
+                            <div class="inline-flex rounded-2xl bg-white/15 p-1 backdrop-blur">
+                                <button data-tab="today"
+                                        class="task-tab-btn px-2.5 py-1 text-xs font-bold rounded-xl
+                                               bg-white text-blue-700 shadow
+                                               transition-colors" id="f-today" role="button" aria-pressed="true">
+                                    오늘
+                                </button>
+                                <button data-tab="week"
+                                        class="task-tab-btn px-2.5 py-1 text-xs font-bold rounded-xl
+                                               text-white/90 hover:bg-white/10 transition-colors" id="f-week" role="button">
+                                    이번 주
+                                </button>
+                                <button data-tab="all"
+                                        class="task-tab-btn px-2.5 py-1 text-xs font-bold rounded-xl
+                                               text-white/90 hover:bg-white/10 transition-colors" id="f-all" role="button">
+                                    전체
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Progress bar -->
+                        <div class="mt-4">
+                            <div class="relative">
+                                <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                    <div id="main-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-teal-400 rounded-full transition-all duration-500" style="width: 50%"></div>
+                                </div>
+                            </div>
+                            <!-- legend -->
+                            <div class="mt-2 flex items-center gap-4 text-[10px] text-white">
+                                <span class="inline-flex items-center gap-2">
+                                    <span class="inline-block w-2.5 h-2.5 rounded bg-gradient-to-r from-blue-500 to-teal-400"></span> 진행률
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Footer: up next + CTA -->
+                        <div class="mt-4 flex flex-col gap-3">
+                            <div id="upnext" class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-blue-100 grid place-items-center text-blue-600 text-xs">▶</div>
+                                <div>
+                                    <div class="text-[10px] text-blue-200">Up next</div>
+                                    <div class="font-bold text-white text-xs" id="nextTitle">뎃셈 연습</div>
+                                    <div class="h-0.5 w-28 bg-blue-200 rounded mt-1 overflow-hidden">
+                                        <div id="nextBar" class="h-full bg-gradient-to-r from-blue-400 to-blue-500" style="width:70%"></div>
+                                    </div>
+                                </div>
+                                <span id="nextEta" class="chip ml-2" data-ghost>예상 <b class="ml-1">5</b>분</span>
+                                <div class="ml-2 px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full text-[9px] font-bold text-white shadow-sm">
+                                    보상 <b>50P</b>
+                                </div>
+                            </div>
+                            <div class="flex justify-end">
+                                <div class="flex items-center gap-1.5">
+                                    <button id="btnContinue" class="px-2 py-1 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-[9px] shadow hover:from-blue-700">이어하기</button>
+                                    <button id="btnAll" class="px-2 py-1 rounded-lg border-2 border-blue-200 font-bold text-white text-[9px] hover:bg-blue-500/20">전체 보기</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-shadow border-0 bg-gradient-to-br from-[#3dd4c5] to-[#20b3a5] text-white">
+                    <div class="p-4">
+                        <!-- 헤더: 제목 + 탭 -->
+                        <div class="flex items-center justify-between gap-3">
+                            <h2 class="text-[15px] font-extrabold tracking-tight">평가 응시 현황</h2>
+
+                            <!-- 탭 -->
+                            <div class="inline-flex rounded-2xl bg-white/15 p-1 backdrop-blur">
+                                <button data-tab="today"
+                                        class="eval-tab-btn px-2.5 py-1 text-xs font-bold rounded-xl
+                                               bg-white text-teal-700 shadow
+                                               transition-colors">
+                                    오늘
+                                </button>
+                                <button data-tab="week"
+                                        class="eval-tab-btn px-2.5 py-1 text-xs font-bold rounded-xl
+                                               text-white/90 hover:bg-white/10 transition-colors">
+                                    이번 주
+                                </button>
+                                <button data-tab="all"
+                                        class="eval-tab-btn px-2.5 py-1 text-xs font-bold rounded-xl
+                                               text-white/90 hover:bg-white/10 transition-colors">
+                                    전체
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 칩 요약 -->
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            <!-- 응시율 -->
+                            <div class="chip flex items-center gap-1.5 bg-white/90 text-slate-800 rounded-lg px-2.5 py-1">
+                                <span class="inline-flex w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span class="text-[10px] font-semibold text-slate-500">응시율</span>
+                                <strong id="rate" class="text-xs font-extrabold">70%</strong>
+                            </div>
+                            <!-- 평균 점수 -->
+                            <div class="chip flex items-center gap-1.5 bg-white/90 text-slate-800 rounded-lg px-2.5 py-1">
+                                <span class="inline-flex w-2 h-2 rounded-full bg-sky-500"></span>
+                                <span class="text-[10px] font-semibold text-slate-500">평균</span>
+                                <strong id="avg" class="text-xs font-extrabold">84점</strong>
+                            </div>
+                            <!-- 미응시 -->
+                            <div class="chip flex items-center gap-1.5 bg-white/90 text-slate-800 rounded-lg px-2.5 py-1">
+                                <span class="inline-flex w-2 h-2 rounded-full bg-rose-500"></span>
+                                <span class="text-[10px] font-semibold text-slate-500">미응시</span>
+                                <strong id="miss" class="text-xs font-extrabold">2건</strong>
+                            </div>
+                            <!-- 마감 임박 -->
+                            <div class="chip flex items-center gap-1.5 bg-white/90 text-slate-800 rounded-lg px-2.5 py-1">
+                                <span class="inline-flex w-2 h-2 rounded-full bg-amber-500"></span>
+                                <span class="text-[10px] font-semibold text-slate-500">마감 임박</span>
+                                <strong id="due" class="text-xs font-extrabold">1건</strong>
+                            </div>
+
+                            <!-- 더보기 버튼 -->
+                            <button
+                                class="ml-auto inline-flex items-center gap-1 bg-white/15 hover:bg-white/25 text-white
+                                       border border-white/20 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors">
+                                더보기
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                     class="opacity-90">
+                                    <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2"
+                                          stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second row: 최근 학습 주제 비중, 오늘의 과제, 내 학습 펫 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+            <!-- 최근 학습 주제 비중 -->
+            <div class="card-shadow bg-white">
+                <div class="p-5">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-[14px] font-bold">최근 학습 주제 비중</h3>
+                            <p class="text-[11px] text-slate-500 mt-1">지난 7일 기준</p>
+                        </div>
+                        <button class="btn-outline h-7 text-[11px] rounded-xl">리포트</button>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-3 items-center">
+                        <svg viewBox="0 0 42 42" class="donut-chart">
+                            <circle cx="21" cy="21" r="15.915" fill="none" stroke="#eef2ff" stroke-width="6" />
+                            <!-- blue 40% -->
+                            <circle cx="21" cy="21" r="15.915" fill="none" stroke="#4f6bff" stroke-width="6" stroke-dasharray="40 60" stroke-dashoffset="25" />
+                            <!-- mint 35% -->
+                            <circle cx="21" cy="21" r="15.915" fill="none" stroke="#3dd4c5" stroke-width="6" stroke-dasharray="35 65" stroke-dashoffset="-15" />
+                            <!-- pink 25% -->
+                            <circle cx="21" cy="21" r="15.915" fill="none" stroke="#ff6ab7" stroke-width="6" stroke-dasharray="25 75" stroke-dashoffset="-55" />
+                        </svg>
+                        <div class="text-[12px] space-y-2">
+                            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#4f6bff] flex-shrink-0"></span><span>분수 40%</span></div>
+                            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#3dd4c5] flex-shrink-0"></span><span>도형 35%</span></div>
+                            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#ff6ab7] flex-shrink-0"></span><span>연산 25%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오늘의 과제 -->
+            <div class="card-shadow bg-white">
+                <div class="p-5">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-[14px] font-semibold">오늘의 과제</h3>
+                        <button class="btn-outline h-7 text-[11px] rounded-xl">모두 보기</button>
+                    </div>
+                    <div class="mt-3 space-y-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="min-w-0">
+                                <p class="font-medium text-[13px] truncate">뎃셈 연습</p>
+                                <div class="progress-bar w-32 h-2 mt-1">
+                                    <div class="progress-fill" style="width: 70%"></div>
+                                </div>
+                            </div>
+                            <button class="btn-outline text-[12px] rounded-xl" onclick="openBalloonAdditionGame()">
+                                이어하기 
+                                <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="min-w-0">
+                                <p class="font-medium text-[13px] truncate">개수 세기 퀴즈</p>
+                                <div class="progress-bar w-32 h-2 mt-1">
+                                    <div class="progress-fill" style="width: 20%"></div>
+                                </div>
+                            </div>
+                            <button class="btn-outline text-[12px] rounded-xl" onclick="startCountingGame()">
+                                시작하기 
+                                <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 내 학습 펫 -->
+            <div class="card-shadow bg-gradient-to-r from-pink-50 to-yellow-50">
+                <div class="p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="text-[14px] font-semibold">내 학습 펫</h3>
+                            <p class="text-slate-600 text-[12px]">열심히 공부해서 펫을 성장시켜요!</p>
+                        </div>
+                        <div class="w-16 h-16 bg-gradient-to-br from-pink-200 to-yellow-200 rounded-full flex items-center justify-center animate-pulse">
+                            <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                                     <div class="flex justify-end">
+                     <button onclick="openPetStudio()" class="bg-gradient-to-r from-pink-400 to-yellow-400 hover:from-pink-500 hover:to-yellow-500 text-white text-[16px] font-semibold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+                         Pet Studio
+                     </button>
+                 </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Recommended Section -->
+        <div class="mt-8">
+            <div class="text-center mb-6">
+                <h3 class="text-2xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 bg-clip-text text-transparent mb-2">
+                    ✨ 나에게 꼭 맞는 추천 학습 자료는? ✨
+                </h3>
+                <div class="w-24 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mx-auto"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="card-shadow bg-white hover-scale">
+                    <div class="p-5">
+                        <div class="text-[11px] text-slate-500 mb-1">AI 추천</div>
+                        <p class="font-semibold text-[14px] mb-1">연산 챌린지</p>
+                        <p class="text-[12px] text-slate-600">짧고 빠르게 연산력을 키워보세요</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">데일리</span>
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">연산</span>
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">퀘스트</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-shadow bg-white hover-scale">
+                    <div class="p-5">
+                        <div class="text-[11px] text-slate-500 mb-1">AI 추천</div>
+                        <p class="font-semibold text-[14px] mb-1">도형 탐험</p>
+                        <p class="text-[12px] text-slate-600">재미있는 도형 퀘스트에 도전하세요</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">도형</span>
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">탐구</span>
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">퍼즐</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-shadow bg-white hover-scale">
+                    <div class="p-5">
+                        <div class="text-[11px] text-slate-500 mb-1">AI 추천</div>
+                        <p class="font-semibold text-[14px] mb-1">분수 퍼즐</p>
+                        <p class="text-[12px] text-slate-600">분수 개념을 놀이처럼 연습하기</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">분수</span>
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">퍼즐</span>
+                            <span class="text-[11px] px-2 py-1 rounded-full bg-[#eef2ff] text-slate-700">기초</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Section -->
+        <div class="mt-8">
+            <!-- Header with balance -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
+                        🛍️ 리워드 마켓
+                    </h3>
+                    <div class="w-16 h-1 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"></div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="mb-4 flex gap-2 items-center">
+                <button class="btn-primary rounded-xl text-[12px] px-4 py-2" id="shop-tab" onclick="switchTab('shop')">상점</button>
+                <button class="btn-outline rounded-xl text-[12px] px-4 py-2" id="auction-tab" onclick="switchTab('auction')">경매장</button>
+                <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-2xl shadow-lg flex items-center gap-2">
+                    <div class="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <span class="font-bold text-sm">내 포인트 1,240P</span>
+                </span>
+                <div class="ml-auto text-[12px] text-slate-600">인벤토리: <span id="inventory-count">0</span>개</div>
+            </div>
+
+            <!-- Shop Tab Content -->
+            <div id="shop-content" class="space-y-4">
+                <!-- Search and Filters -->
+                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        <div class="relative w-full md:w-64">
+                            <input type="text" id="search-input" placeholder="아이템 검색" class="w-full pl-8 pr-3 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <select id="category-filter" class="w-full md:w-32 text-[13px] border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="전체">전체</option>
+                            <option value="코스메틱">코스메틱</option>
+                            <option value="펫" selected>펫</option>
+                            <option value="학습">학습</option>
+                        </select>
+                        <select id="rarity-filter" class="w-full md:w-36 text-[13px] border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="전체" selected>전체</option>
+                            <option value="COMMON">COMMON</option>
+                            <option value="RARE">RARE</option>
+                            <option value="EPIC">EPIC</option>
+                            <option value="SEASONAL">SEASONAL</option>
+                        </select>
+                        <select id="sort-filter" class="w-full md:w-28 text-[13px] border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="popular" selected>인기</option>
+                            <option value="price_asc">가격↑</option>
+                            <option value="price_desc">가격↓</option>
+                            <option value="new">최신</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Shop Items Grid -->
+                <div class="card-shadow bg-white">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                                </svg>
+                                <h4 class="text-[14px] font-semibold">상점</h4>
+                                <span class="text-[11px] text-slate-500" id="shop-item-count">9개</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="shop-items-grid">
+                            <!-- Shop items will be populated by JavaScript -->
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="flex items-center justify-center gap-2 mt-5">
+                            <button class="btn-outline text-[12px] rounded-xl px-3 py-1" id="prev-page" onclick="changePage(-1)">이전</button>
+                            <span class="text-[12px] text-slate-600" id="page-info">1 / 1</span>
+                            <button class="btn-outline text-[12px] rounded-xl px-3 py-1" id="next-page" onclick="changePage(1)">다음</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auction Tab Content -->
+            <div id="auction-content" class="space-y-4" style="display: none;">
+                <div class="flex items-center justify-between">
+                    <div class="text-[12px] text-slate-600">학급 전용 경매 · 채팅 없음 · 신고/차단 운영</div>
+                </div>
+
+                <div class="card-shadow bg-white">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <h4 class="text-[14px] font-semibold">경매장</h4>
+                                <button class="tutorial-btn flex items-center gap-2 text-[12px] text-blue-600 hover:text-blue-700 font-medium bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 px-3 py-1.5 rounded-lg transition-all duration-200 border border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md" onclick="openAuctionTutorial()" title="경매 튜토리얼">
+                                    <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                    </svg>
+                                    경매 튜토리얼
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="auction-items-grid">
+                            <!-- Auction items will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 라이브 참여자 시각화 -->
+                <div class="card-shadow bg-white">
+                    <div class="p-5">
+                        <div class="mb-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <h4 class="text-[14px] font-semibold">라이브 참여자</h4>
+                                <span id="leader-name" class="ml-2 text-[12px] text-slate-500">현재 최고 입찰자: 권희준</span>
+                            </div>
+                        </div>
+
+                        <div class="relative overflow-hidden rounded-[24px]" style="background:#fef4e6">
+                            <!-- 상단 배경 -->
+                            <div class="h-18 border-b border-amber-200 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%2272%22><rect width=%22400%22 height=%2272%22 fill=%22%23fde7c7%22/><rect x=%22180%22 y=%2210%22 width=%22100%22 height=%2236%22 fill=%22%23dff1ff%22/><rect x=%22310%22 y=%2220%22 width=%2250%22 height=%2236%22 fill=%22none%22 stroke=%22%23f1d3a8%22 stroke-width=%223%22/></svg>')]"></div>
+
+                            <!-- 좌석 5개: 새로운 좌석 이미지로 배치 -->
+                            <div class="px-6 md:px-12 pt-8">
+                                <div id="seats" class="flex justify-between gap-6 md:gap-10 flex-wrap md:flex-nowrap">
+                                    <!-- JS가 삽입 -->
+                                </div>
+                            </div>
+
+                            <!-- 경매사 자리: 중앙 전면 -->
+                            <div class="pb-10 pt-6 flex justify-center">
+                                <div class="auctioneer">
+                                    <div class="auct-bubble" id="auct-bubble">딩동! 입찰 진행</div>
+                                    <div class="podiumTop"></div>
+                                    <div class="podium">
+                                        <div class="label">경매사</div>
+                                        <div class="gavel">🔨</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar Shop Modal -->
+        <div id="avatar-shop-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-2">
+            <div class="bg-white rounded-2xl p-4 max-w-[95vw] w-full max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-lg font-bold text-slate-800">아바타 상점</h3>
+                        <div class="flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full px-3 py-1.5 text-white font-bold text-sm shadow-sm">
+                            <div class="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <span>내 포인트 <span id="avatar-shop-points">1,240P</span></span>
+                        </div>
+                    </div>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeAvatarShop()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Avatar Categories -->
+                <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                    <button class="avatar-category-btn active" data-category="all">전체</button>
+                    <button class="avatar-category-btn" data-category="free">무료</button>
+                    <button class="avatar-category-btn" data-category="premium">프리미엄</button>
+                    <button class="avatar-category-btn" data-category="seasonal">시즌한정</button>
+                </div>
+
+                <!-- Avatar Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4" id="avatar-grid">
+                    <!-- Avatars will be populated by JavaScript -->
+                </div>
+
+                <!-- Current Avatar Display -->
+                <div class="border-t pt-4">
+                    <h4 class="text-base font-semibold mb-3">현재 아바타</h4>
+                    <div class="flex items-center gap-4">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center shadow-lg border-4 border-white overflow-hidden">
+                            <img src="assets/tennis_pet_transparent.svg" class="w-16 h-16" alt="테니스 펫 아바타">
+                        </div>
+                        <div>
+                            <p class="font-medium text-slate-800">기본 아바타</p>
+                            <p class="text-sm text-slate-600">현재 착용 중</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar Purchase Modal -->
+        <div id="avatar-purchase-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-gradient-to-br from-pink-100 via-yellow-100 to-mint-100 rounded-2xl p-4 max-w-sm w-full mx-4 shadow-xl border-2 border-pink-300 relative overflow-hidden">
+                <!-- 배경 장식 -->
+                <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full opacity-30 -translate-y-8 translate-x-8"></div>
+                <div class="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-br from-mint-200 to-blue-200 rounded-full opacity-30 translate-y-6 -translate-x-6"></div>
+                
+                <div class="relative z-10 text-center">
+                    <!-- 이모지와 제목 -->
+                    <div class="text-3xl mb-2 animate-bounce">🛍️✨</div>
+                    <h3 class="text-lg font-extrabold text-indigo-800 mb-3 bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+                        아바타 구매 확인
+                    </h3>
+                    
+                    <!-- 아바타 정보 -->
+                    <div class="bg-white rounded-xl p-3 mb-3 shadow-lg border-2 border-pink-200">
+                        <div class="flex items-center justify-center gap-3 mb-3">
+                            <div id="purchase-avatar-image" class="w-12 h-12 rounded-full flex items-center justify-center shadow-lg border-3 border-white overflow-hidden">
+                                <!-- 아바타 이미지가 여기에 표시됩니다 -->
+                            </div>
+                            <div class="text-left">
+                                <h4 id="purchase-avatar-name" class="text-sm font-bold text-indigo-800"></h4>
+                                <p class="text-xs text-gray-600">새로운 아바타!</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 가격 정보 -->
+                        <div class="bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg p-3 border-2 border-amber-200">
+                            <div class="flex items-center justify-center gap-1 mb-1">
+                                <span class="text-lg">🪙</span>
+                                <span class="text-xs font-medium text-amber-700">가격</span>
+                            </div>
+                            <p class="text-xl font-extrabold text-amber-600" id="purchase-avatar-price"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- 확인 메시지 -->
+                    <div class="bg-gradient-to-r from-pink-200 to-purple-200 rounded-xl p-3 mb-3">
+                        <p class="text-sm font-bold text-indigo-800">
+                            이 아바타를 구매하시겠어요? 🎉
+                        </p>
+                    </div>
+                    
+                    <!-- 버튼 -->
+                    <div class="flex gap-2 justify-center">
+                        <button onclick="closeAvatarPurchaseModal()" 
+                                class="bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-gray-300">
+                            ❌ 취소
+                        </button>
+                        <button onclick="confirmAvatarPurchase()" 
+                                class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-pink-300">
+                            🎯 구매하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg flex justify-around py-3 z-50">
+        <button class="flex flex-col items-center" style="color: var(--primary);">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            <span class="text-xs mt-1">홈</span>
+        </button>
+        <button class="flex flex-col items-center text-gray-600 transition-colors" style="--tw-text-opacity: 1; color: var(--muted);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            <span class="text-xs mt-1">과제</span>
+        </button>
+        <button class="flex flex-col items-center text-gray-600 transition-colors" style="--tw-text-opacity: 1; color: var(--muted);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+            </svg>
+            <span class="text-xs mt-1">평가</span>
+        </button>
+        <button class="flex flex-col items-center text-gray-600 transition-colors" style="--tw-text-opacity: 1; color: var(--muted);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+            </svg>
+            <span class="text-xs mt-1">반</span>
+        </button>
+        <button class="flex flex-col items-center text-gray-600 transition-colors" style="--tw-text-opacity: 1; color: var(--muted);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+            </svg>
+            <span class="text-xs mt-1">리워드</span>
+        </button>
+        <button class="flex flex-col items-center text-gray-600 transition-colors" style="--tw-text-opacity: 1; color: var(--muted);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <span class="text-xs mt-1">분석</span>
+        </button>
+        <button class="flex flex-col items-center text-gray-600 transition-colors" style="--tw-text-opacity: 1; color: var(--muted);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <span class="text-xs mt-1">설정</span>
+        </button>
+    </nav>
+
+    <!-- Floating Assistant -->
+    <button class="floating-assistant" title="AI 도움말" onclick="showAIAssistant()">
+        <div class="assistant-dot"></div>
+    </button>
+
+
+
+    <script>
+        // 학생용 대시보드 v2 애니메이션 효과
+        document.addEventListener('DOMContentLoaded', function() {
+            // 카드들이 순차적으로 나타나는 효과
+            const cards = document.querySelectorAll('.card-shadow');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+
+            // 진행률 바 애니메이션
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 800);
+            });
+
+            // 통계 카드 호버 효과
+            const statCards = document.querySelectorAll('.hover-scale');
+            statCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.02)';
+                });
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+
+            // 버튼 클릭 효과
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+        });
+
+        // AI 도우미 표시 함수
+        function showAIAssistant() {
+            alert('AI 도우미가 활성화되었습니다! 무엇을 도와드릴까요?');
+        }
+
+        // 온보딩 데이터 확인 및 표시
+        function checkOnboardingData() {
+            const onboardingData = localStorage.getItem('onboarding_answers');
+            if (onboardingData) {
+                try {
+                    const data = JSON.parse(onboardingData);
+                    console.log('온보딩 데이터:', data);
+                    
+                    // 온보딩 데이터를 기반으로 UI 업데이트
+                    updateDashboardWithOnboardingData(data);
+                } catch (e) {
+                    console.error('온보딩 데이터 파싱 오류:', e);
+                }
+            }
+        }
+
+        // 온보딩 데이터를 기반으로 대시보드 업데이트
+        function updateDashboardWithOnboardingData(data) {
+            // 예시: 학년 정보가 있으면 표시
+            if (data.grade && data.grade.length > 0) {
+                const gradeInfo = data.grade.join(', ');
+                // 학년 정보를 UI에 반영하는 로직
+                console.log('학년 정보:', gradeInfo);
+            }
+            
+            // 강점 정보가 있으면 추천 섹션에 반영
+            if (data.strength && data.strength.length > 0) {
+                const strengths = data.strength.join(', ');
+                console.log('강점 정보:', strengths);
+            }
+        }
+
+        // 경매장 카운트다운 기능
+        function updateAuctionTimers() {
+            const now = Date.now();
+            
+            // 경매 1: 6시간 후 종료
+            const auction1End = now + (6 * 60 * 60 * 1000);
+            const timeLeft1 = Math.max(0, auction1End - now);
+            const hours1 = Math.floor(timeLeft1 / (1000 * 60 * 60));
+            const minutes1 = Math.floor((timeLeft1 % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds1 = Math.floor((timeLeft1 % (1000 * 60)) / 1000);
+            
+            const timer1 = document.getElementById('auction1-timer');
+            if (timer1) {
+                timer1.textContent = `${String(hours1).padStart(2, '0')}:${String(minutes1).padStart(2, '0')}:${String(seconds1).padStart(2, '0')}`;
+            }
+            
+            // 경매 2: 20분 후 종료
+            const auction2End = now + (20 * 60 * 1000);
+            const timeLeft2 = Math.max(0, auction2End - now);
+            const hours2 = Math.floor(timeLeft2 / (1000 * 60 * 60));
+            const minutes2 = Math.floor((timeLeft2 % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds2 = Math.floor((timeLeft2 % (1000 * 60)) / 1000);
+            
+            const timer2 = document.getElementById('auction2-timer');
+            if (timer2) {
+                timer2.textContent = `${String(hours2).padStart(2, '0')}:${String(minutes2).padStart(2, '0')}:${String(seconds2).padStart(2, '0')}`;
+            }
+        }
+
+        // 페이지 로드 시 온보딩 데이터 확인
+        window.addEventListener('load', checkOnboardingData);
+        
+        // 마켓 시스템 데이터 및 상태
+        let currentBalance = 1240;
+        let inventory = [];
+        let currentTab = 'shop';
+        let currentPage = 1;
+        const PAGE_SIZE = 9;
+
+                     // 목데이터
+             const MOCK_ITEMS = [
+                 { id: 11, title: "배경 테마 · 스노우", price: 400, category: "코스메틱", rarity: "SEASONAL", tag: "시즌", image: "/img/bg_snow.png", popularity: 80, createdAt: 1730000000000 },
+                 { id: 12, title: "힌트 티켓 ×3", price: 250, category: "학습", rarity: "COMMON", tag: "학습", image: "/img/ticket.png", popularity: 92, createdAt: 1731000000000 },
+                 { id: 13, title: "펫 먹이 · 별사탕", price: 120, category: "펫", rarity: "COMMON", tag: "펫", image: "/img/candy.png", popularity: 76, createdAt: 1732000000000 },
+                 { id: 14, title: "귀여운 푸들", price: 520, category: "펫", rarity: "RARE", tag: "스킨", image: "/img/skin_mint.png", popularity: 88, createdAt: 1733000000000 },
+                 { id: 15, title: "프로필 이펙트 · 핑크 오라", price: 680, category: "코스메틱", rarity: "EPIC", tag: "효과", image: "/img/effect_pink.png", popularity: 70, createdAt: 1733500000000 },
+                 { id: 16, title: "배경 테마 · 네온", price: 420, category: "코스메틱", rarity: "RARE", tag: "테마", image: "/img/bg_neon.png", popularity: 64, createdAt: 1733600000000 },
+                 { id: 17, title: "보너스 해설 패스(1일)", price: 300, category: "학습", rarity: "RARE", tag: "해설", image: "/img/pass_explain.png", popularity: 85, createdAt: 1733700000000 },
+                 { id: 18, title: "펫 장난감 · 요요", price: 160, category: "펫", rarity: "COMMON", tag: "장난감", image: "/img/toy_yoyo.png", popularity: 55, createdAt: 1733800000000 },
+                 { id: 19, title: "문제 생성 토큰(10)", price: 540, category: "학습", rarity: "EPIC", tag: "AI", image: "/img/ai_tokens.png", popularity: 99, createdAt: 1733900000000 },
+             ];
+
+        const MOCK_AUCTIONS = [
+            {
+                id: 101,
+                title: "희귀 · 핑크 오라 이펙트",
+                current: 820,
+                buyout: 2400,
+                minInc: 50,
+                rare: true,
+                image: "/img/effect_pink.png",
+                endsAt: Date.now() + 1000 * 60 * 38, // 38분
+                leader: "권희준"
+            },
+            {
+                id: 102,
+                title: "펫 스킨 · 민트 슬라임",
+                current: 540,
+                buyout: 1800,
+                minInc: 50,
+                rare: false,
+                image: "/img/skin_mint.png",
+                endsAt: Date.now() + 1000 * 60 * 60 * 6, // 6시간
+                leader: "박청명"
+            },
+        ];
+
+        // 탭 전환 함수
+        function switchTab(tab) {
+            currentTab = tab;
+            currentPage = 1;
+            
+            // 탭 버튼 스타일 변경
+            document.getElementById('shop-tab').className = tab === 'shop' ? 'btn-primary rounded-xl text-[12px] px-4 py-2' : 'btn-outline rounded-xl text-[12px] px-4 py-2';
+            document.getElementById('auction-tab').className = tab === 'auction' ? 'btn-primary rounded-xl text-[12px] px-4 py-2' : 'btn-outline rounded-xl text-[12px] px-4 py-2';
+            
+            // 콘텐츠 표시/숨김
+            document.getElementById('shop-content').style.display = tab === 'shop' ? 'block' : 'none';
+            document.getElementById('auction-content').style.display = tab === 'auction' ? 'block' : 'none';
+            
+            // 해당 탭의 데이터 렌더링
+            if (tab === 'shop') {
+                renderShopItems();
+            } else {
+                renderAuctionItems();
+                renderSeats();
+            }
+        }
+
+        // 상점 아이템 렌더링
+        function renderShopItems() {
+            const searchQuery = document.getElementById('search-input').value.toLowerCase();
+            const categoryFilter = document.getElementById('category-filter').value;
+            const rarityFilter = document.getElementById('rarity-filter').value;
+            const sortFilter = document.getElementById('sort-filter').value;
+            
+            // 필터링
+            let filtered = MOCK_ITEMS.filter(item => {
+                if (searchQuery && !item.title.toLowerCase().includes(searchQuery)) return false;
+                if (categoryFilter !== '전체' && item.category !== categoryFilter) return false;
+                if (rarityFilter !== '전체' && item.rarity !== rarityFilter) return false;
+                return true;
+            });
+            
+            // 정렬
+            switch (sortFilter) {
+                case 'price_asc':
+                    filtered.sort((a, b) => a.price - b.price);
+                    break;
+                case 'price_desc':
+                    filtered.sort((a, b) => b.price - a.price);
+                    break;
+                case 'new':
+                    filtered.sort((a, b) => b.createdAt - a.createdAt);
+                    break;
+                default:
+                    filtered.sort((a, b) => b.popularity - a.popularity);
+            }
+            
+            // 페이지네이션
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const pageData = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+            
+                         // 아이템 그리드 렌더링
+             const grid = document.getElementById('shop-items-grid');
+             grid.innerHTML = pageData.map(item => {
+                 // 펫 이미지 생성 함수
+                 function getPetImage(title) {
+                     if (title.includes('귀여운 푸들')) {
+                         // 푸들 이미지
+                         return `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-200 to-orange-300 flex items-center justify-center">
+                             <img src="assets/poodle.svg" class="w-14 h-14" alt="귀여운 푸들">
+                         </div>`;
+                     } else if (title.includes('별사탕')) {
+                         // 펫 먹이(별사탕+그릇) 이미지
+                         return `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-pink-200 to-purple-300 flex items-center justify-center">
+                             <img src="assets/pet_food.svg" class="w-14 h-14" alt="펫 먹이">
+                         </div>`;
+                     } else if (title.includes('요요')) {
+                         // 펫 장난감(요요) 이미지
+                         return `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-200 to-cyan-300 flex items-center justify-center">
+                             <img src="assets/pet_toy.svg" class="w-14 h-14" alt="펫 장난감">
+                         </div>`;
+                     } else if (title.includes('펫')) {
+                         // 기타 펫 아이템 - 기본 하트 이미지
+                         return `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-200 to-indigo-300 flex items-center justify-center">
+                             <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                             </svg>
+                         </div>`;
+                     }
+                     
+                     // 기본 아이템 이미지 (번개 아이콘)
+                     return `<div class="h-28 rounded-xl bg-gradient-to-br from-[#eef2ff] to-white flex items-center justify-center">
+                         <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                         </svg>
+                     </div>`;
+                 }
+                 
+                 return `
+                     <div class="rounded-2xl border border-indigo-50 p-3 bg-[#fbfcff]">
+                         ${getPetImage(item.title)}
+                         <p class="mt-2 text-[12px] font-semibold truncate" title="${item.title}">${item.title}</p>
+                         <div class="mt-1 flex items-center justify-between">
+                             <span class="text-[12px] font-bold text-indigo-700">${item.price}P</span>
+                             <div class="flex items-center gap-1">
+                                 <span class="text-[10px] px-2 py-1 rounded-md bg-[#eef2ff] text-slate-700">${item.tag}</span>
+                                 <span class="text-[10px] px-2 py-1 rounded-md ${item.rarity !== 'COMMON' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}">${item.rarity}</span>
+                             </div>
+                         </div>
+                         <button class="btn-primary w-full mt-2 text-[12px] rounded-xl" onclick="openPurchaseModal(${item.id})">구매</button>
+                     </div>
+                 `;
+             }).join('');
+            
+            // 페이지네이션 업데이트
+            document.getElementById('shop-item-count').textContent = `${filtered.length}개`;
+            document.getElementById('page-info').textContent = `${currentPage} / ${totalPages}`;
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = currentPage === totalPages;
+        }
+
+        // 경매 아이템 렌더링
+        function renderAuctionItems() {
+            const grid = document.getElementById('auction-items-grid');
+            grid.innerHTML = MOCK_AUCTIONS.map(auction => {
+                const timeLeft = Math.max(0, auction.endsAt - Date.now());
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                const timeDisplay = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                return `
+                    <div class="rounded-2xl border border-pink-50 p-3 bg-[#fff8fb]">
+                        <div class="flex items-center gap-3">
+                            <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-[#ffe3f2] to-white flex items-center justify-center">
+                                <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-[12px] font-semibold truncate" title="${auction.title}">${auction.title}</p>
+                                    ${auction.rare ? '<span class="bg-pink-500 text-white text-[10px] px-2 py-1 rounded-md">희귀</span>' : ''}
+                                </div>
+                                <div class="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                    </svg>
+                                    현재가 <b class="text-slate-900">${auction.current}P</b>
+                                    <span class="opacity-60">/</span> 즉구 <b class="text-slate-900">${auction.buyout}P</b>
+                                </div>
+                                <div class="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    남은 시간 <b class="text-slate-900">${timeDisplay}</b>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                            <button class="btn-primary text-[12px] rounded-xl" onclick="bid(${auction.id})">입찰 +${auction.minInc}P</button>
+                            <button class="btn-outline text-[12px] rounded-xl" onclick="buyout(${auction.id})">즉시구매</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 페이지 변경
+        function changePage(delta) {
+            currentPage = Math.max(1, currentPage + delta);
+            renderShopItems();
+        }
+
+        // 구매 모달 열기
+        function openPurchaseModal(itemId) {
+            const item = MOCK_ITEMS.find(i => i.id === itemId);
+            if (!item) return;
+            
+            document.getElementById('modal-item-title').textContent = item.title;
+            document.getElementById('modal-item-price').textContent = item.price;
+            document.getElementById('modal-balance').textContent = currentBalance;
+            document.getElementById('purchase-modal').classList.remove('hidden');
+            document.getElementById('confirm-purchase').disabled = currentBalance < item.price;
+        }
+
+        // 구매 모달 닫기
+        function closePurchaseModal() {
+            document.getElementById('purchase-modal').classList.add('hidden');
+        }
+
+        // 구매 확인
+        function confirmPurchase() {
+            const modal = document.getElementById('purchase-modal');
+            const title = document.getElementById('modal-item-title').textContent;
+            const price = parseInt(document.getElementById('modal-item-price').textContent);
+            
+            if (currentBalance < price) {
+                alert('포인트가 부족해요.');
+                return;
+            }
+            
+            currentBalance -= price;
+            inventory.push({ id: Date.now(), title: title, price: price });
+            
+            updateBalanceDisplay();
+            updateInventoryCount();
+            closePurchaseModal();
+            alert('구매 완료! 인벤토리에 추가되었어요.');
+        }
+
+        // 입찰
+        function bid(auctionId) {
+            const auction = MOCK_AUCTIONS.find(a => a.id === auctionId);
+            if (!auction) return;
+            
+            const nextBid = auction.current + auction.minInc;
+            if (currentBalance < auction.minInc) {
+                alert('포인트가 부족해요.');
+                return;
+            }
+            
+            auction.current = nextBid;
+            auction.leader = '나(지민)';
+            currentBalance -= auction.minInc;
+            updateBalanceDisplay();
+            renderAuctionItems();
+            renderSeats();
+            updateLeader('나(지민)');
+            showBubble('me', '입찰! +50');
+            alert(`입찰 완료! 현재가: ${nextBid}P`);
+        }
+
+        // 즉시구매
+        function buyout(auctionId) {
+            const auction = MOCK_AUCTIONS.find(a => a.id === auctionId);
+            if (!auction) return;
+            
+            if (currentBalance < auction.buyout) {
+                alert('포인트가 부족해요.');
+                return;
+            }
+            
+            auction.current = auction.buyout;
+            auction.leader = '나(지민)';
+            currentBalance -= auction.buyout;
+            inventory.push({ id: Date.now(), title: auction.title, price: auction.buyout });
+            
+            updateBalanceDisplay();
+            updateInventoryCount();
+            renderSeats();
+            updateLeader('나(지민)');
+            showBubble('me', '즉시구매!');
+            alert('즉시구매 완료! 인벤토리에 추가되었어요.');
+        }
+
+        // 잔액 표시 업데이트
+        function updateBalanceDisplay() {
+            document.getElementById('market-balance').textContent = `${currentBalance}P`;
+        }
+
+        // 인벤토리 개수 업데이트
+        function updateInventoryCount() {
+            document.getElementById('inventory-count').textContent = inventory.length;
+        }
+
+        // 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 검색 및 필터 이벤트
+            document.getElementById('search-input').addEventListener('input', () => {
+                currentPage = 1;
+                renderShopItems();
+            });
+            
+            document.getElementById('category-filter').addEventListener('change', () => {
+                currentPage = 1;
+                renderShopItems();
+            });
+            
+            document.getElementById('rarity-filter').addEventListener('change', () => {
+                currentPage = 1;
+                renderShopItems();
+            });
+            
+            document.getElementById('sort-filter').addEventListener('change', () => {
+                currentPage = 1;
+                renderShopItems();
+            });
+            
+            // 초기 렌더링
+            renderShopItems();
+            updateInventoryCount();
+            
+            // 경매장 탭이 처음 로드될 때 좌석 렌더링
+            if (currentTab === 'auction') {
+                renderSeats();
+            }
+        });
+
+                 // 경매장 타이머 업데이트 (1초마다)
+         setInterval(() => {
+             if (currentTab === 'auction') {
+                 renderAuctionItems();
+             }
+         }, 1000);
+         
+         // 라이브 참여자 데이터 (새로운 좌석 이미지 구조)
+         const participants = [
+                     { id: 1, name: '지민', seatImage: 'assets/seats/seat_1_jimin.svg', isLeader: false, isMe: true },
+        { id: 2, name: '박청명', seatImage: 'assets/seats/seat_2_park.svg', isLeader: true, isMe: false },
+        { id: 3, name: '김수호', seatImage: 'assets/seats/seat_3_kim.svg', isLeader: false, isMe: false },
+        { id: 4, name: '권희준', seatImage: 'assets/seats/seat_4_kwon.svg', isLeader: false, isMe: false },
+        { id: 5, name: '남상미', seatImage: 'assets/seats/seat_5_nam.svg', isLeader: false, isMe: false }
+         ];
+         
+         // 좌석 렌더링 (새로운 좌석 이미지 구조)
+         function renderSeats() {
+             const seatsContainer = document.getElementById('seats');
+             if (!seatsContainer) return;
+             
+             seatsContainer.innerHTML = participants.map(participant => `
+                 <div class="seat-item">
+                     <img src="${participant.seatImage}" class="w-40 h-40" alt="${participant.name} 좌석">
+                     <div class="nameplate">
+                         ${participant.id}번 ${participant.isMe ? '나(' + participant.name + ')' : participant.name}
+                         ${participant.isLeader ? '<div class="crown">👑</div>' : ''}
+                     </div>
+                 </div>
+             `).join('');
+         }
+         
+         // 말풍선 표시 (새로운 구조)
+         function showBubble(participantId, message) {
+             const participant = participants.find(p => p.id === participantId);
+             if (!participant) return;
+             
+             const seat = document.querySelector(`#seats .seat-item:nth-child(${participantId})`);
+             if (!seat) return;
+             
+             // 기존 말풍선 제거
+             const existingBubble = seat.querySelector('.bubble');
+             if (existingBubble) {
+                 existingBubble.remove();
+             }
+             
+             // 새 말풍선 생성
+             const bubble = document.createElement('div');
+             bubble.className = 'bubble';
+             bubble.textContent = message;
+             seat.appendChild(bubble);
+             
+             // 애니메이션 시작
+             setTimeout(() => {
+                 bubble.classList.add('show');
+             }, 100);
+             
+             // 말풍선 제거
+             setTimeout(() => {
+                 bubble.remove();
+             }, 3000);
+         }
+         
+         // 리더 업데이트 (새로운 구조)
+         function updateLeader(leaderName) {
+             const leaderElement = document.getElementById('leader-name');
+             if (leaderElement) {
+                 leaderElement.textContent = `현재 최고 입찰자: ${leaderName}`;
+             }
+             
+             // 리더 상태 업데이트
+             participants.forEach(p => {
+                 p.isLeader = p.name === leaderName;
+             });
+             
+             // 좌석 다시 렌더링
+             renderSeats();
+         }
+         
+         // 봇 자동 입찰 (새로운 구조)
+         function randomBot() {
+             const randomParticipant = participants[Math.floor(Math.random() * participants.length)];
+             if (!randomParticipant.isMe) {
+                 const messages = ['입찰!', '더 높게!', '내가 가져간다!', '흥!'];
+                 const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                 showBubble(randomParticipant.id, randomMessage);
+             }
+         }
+         
+         // 경매 1 봇 자동 입찰
+         setInterval(() => {
+             if (currentTab === 'auction' && MOCK_AUCTIONS[0].endsAt - Date.now() > 10_000 && Math.random() < 0.45) {
+                 const randomParticipant = participants[Math.floor(Math.random() * participants.length)];
+                 if (randomParticipant.isMe) return;
+                 
+                 const auction = MOCK_AUCTIONS[0];
+                 auction.current += auction.minInc;
+                 auction.leader = randomParticipant.name;
+                 
+                 renderAuctionItems();
+                 renderSeats();
+                 updateLeader(auction.leader);
+                 showBubble(randomParticipant.id, '입찰! +50');
+             }
+         }, 3600);
+         
+         // 경매 2 봇 자동 입찰
+         setInterval(() => {
+             if (currentTab === 'auction' && MOCK_AUCTIONS[1].endsAt - Date.now() > 10_000 && Math.random() < 0.35) {
+                 const randomParticipant = participants[Math.floor(Math.random() * participants.length)];
+                 if (randomParticipant.isMe) return;
+                 
+                 const auction = MOCK_AUCTIONS[1];
+                 auction.current += auction.minInc;
+                 auction.leader = randomParticipant.name;
+                 
+                 renderAuctionItems();
+                 renderSeats();
+                 updateLeader(auction.leader);
+                 showBubble(randomParticipant.id, '입찰! +50');
+             }
+         }, 5200);
+
+         // 도형의 넓이 퀴즈 시작
+         function startAreaQuest() {
+             // 풀스크린 모달 열기
+             const modal = document.createElement('div');
+             modal.id = 'area-quest-modal';
+             modal.className = 'fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4';
+             modal.innerHTML = `
+                 <div class="bg-white rounded-3xl max-w-6xl w-full max-h-[95vh] overflow-hidden">
+                     <!-- 헤더 -->
+                     <div class="p-4 pb-0 border-b border-gray-100">
+                         <div class="flex items-center justify-between w-full">
+                             <div class="flex items-center gap-2 text-[13px]">
+                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">도형의 넓이</span>
+                                 <span class="text-slate-600">1 / 10</span>
+                             </div>
+                             <button class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center" onclick="closeAreaQuest()">
+                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                 </svg>
+                             </button>
+                         </div>
+                     </div>
+
+                     <div class="px-4 pb-4">
+                         <!-- 진행률 및 타이머 -->
+                         <div class="flex items-center gap-3 mb-3 mt-3">
+                             <div class="w-full">
+                                 <div class="bg-gray-200 rounded-full h-2">
+                                     <div class="bg-gradient-to-r from-indigo-500 to-mint-500 h-2 rounded-full transition-all duration-300" id="quest-progress" style="width: 10%"></div>
+                                 </div>
+                             </div>
+                             <span class="text-[12px] text-slate-600" id="quest-timer">00:45</span>
+                         </div>
+
+                         <!-- 탭 네비게이션 -->
+                         <div class="flex gap-2 mb-3">
+                             <button class="bg-gradient-to-r from-indigo-500 to-mint-500 text-white px-4 py-2 rounded-xl text-[12px] font-medium" id="tiling-tab" onclick="switchQuestMode('tiling')">타일링 랩</button>
+                             <button class="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-xl text-[12px] font-medium" id="decompose-tab" onclick="switchQuestMode('decompose')" disabled>분해·합성</button>
+                         </div>
+
+                         <!-- 게임 영역 -->
+                         <div id="quest-game-area">
+                             <!-- 타일링 랩 모드 -->
+                             <div id="tiling-mode" class="grid grid-cols-12 gap-4">
+                                 <!-- 보드 -->
+                                 <div class="col-span-12 lg:col-span-8 bg-white rounded-3xl shadow-sm border border-gray-100">
+                                     <div class="p-4">
+                                         <div class="text-[12px] text-slate-600 mb-2">타일을 배치해 파란 영역을 빈틈없이 채우세요.</div>
+                                         <div class="inline-block rounded-2xl p-2 bg-white shadow-inner">
+                                             <div id="tiling-grid" class="grid gap-0" style="grid-template-columns: repeat(12, 24px); grid-template-rows: repeat(8, 24px);"></div>
+                                         </div>
+                                     </div>
+                                 </div>
+
+                                 <!-- 도구 패널 -->
+                                 <div class="col-span-12 lg:col-span-4 bg-white rounded-3xl shadow-sm border border-gray-100">
+                                     <div class="p-4 space-y-3">
+                                         <div class="flex items-center justify-between">
+                                             <div class="text-[13px] font-semibold">타일링 랩</div>
+                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" id="tiling-progress">면적 0/24</span>
+                                         </div>
+
+                                         <div class="grid grid-cols-3 gap-2">
+                                             <button class="bg-gradient-to-r from-indigo-500 to-mint-500 text-white px-3 py-2 rounded-xl text-[12px] font-medium tile-tool" data-type="1x1">1×1</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium tile-tool" data-type="1x2">1×2</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium tile-tool" data-type="2x2">2×2</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium col-span-3" id="rotate-btn" onclick="rotateTile()" disabled>
+                                                 <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path>
+                                                 </svg>
+                                                 회전
+                                             </button>
+                                         </div>
+
+                                         <div class="flex gap-2">
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium" onclick="undoTile()">
+                                                 <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                                 </svg>
+                                                 되돌리기
+                                             </button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium" onclick="resetTiling()">
+                                                 <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                                 </svg>
+                                                 초기화
+                                             </button>
+                                         </div>
+
+                                         <div id="tiling-complete" class="hidden rounded-xl bg-emerald-50 text-emerald-800 p-3 text-[12px]">
+                                             완료! 정확히 덮었습니다. +50P
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- 분해·합성 모드 -->
+                             <div id="decompose-mode" class="hidden grid grid-cols-12 gap-4">
+                                 <!-- 보드 -->
+                                 <div class="col-span-12 lg:col-span-8 bg-white rounded-3xl shadow-sm border border-gray-100">
+                                     <div class="p-4">
+                                         <div class="text-[12px] text-slate-600 mb-2">조각을 배치해 회색 영역을 빈틈없이 채우세요. (조각 면적의 합 = 도형의 넓이)</div>
+                                         <div class="inline-block rounded-2xl p-2 bg-white shadow-inner">
+                                             <div id="decompose-grid" class="grid gap-0" style="grid-template-columns: repeat(10, 24px); grid-template-rows: repeat(8, 24px);"></div>
+                                         </div>
+                                     </div>
+                                 </div>
+
+                                 <!-- 도구 패널 -->
+                                 <div class="col-span-12 lg:col-span-4 bg-white rounded-3xl shadow-sm border border-gray-100">
+                                     <div class="p-4 space-y-3">
+                                         <div class="flex items-center justify-between">
+                                             <div class="text-[13px] font-semibold">분해·합성</div>
+                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800" id="decompose-progress">합 0 / 목표 24</span>
+                                         </div>
+
+                                         <div class="grid grid-cols-3 gap-2">
+                                             <button class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-2 rounded-xl text-[12px] font-medium piece-tool" data-key="A" data-w="2" data-h="2">2×2</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium piece-tool" data-key="B" data-w="3" data-h="1">3×1</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium piece-tool" data-key="C" data-w="1" data-h="3">1×3</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium piece-tool" data-key="D" data-w="2" data-h="1">2×1</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium piece-tool" data-key="E" data-w="1" data-h="2">1×2</button>
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium col-span-3" onclick="rotatePiece()">
+                                                 <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path>
+                                                 </svg>
+                                                 회전
+                                             </button>
+                                         </div>
+
+                                         <div class="flex gap-2">
+                                             <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium" onclick="undoPiece()">
+                                                 <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                                     </svg>
+                                                     되돌리기
+                                                 </button>
+                                                 <button class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium" onclick="resetDecompose()">
+                                                     <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                                     </svg>
+                                                     초기화
+                                                 </button>
+                                             </div>
+
+                                             <div id="decompose-complete" class="hidden rounded-xl bg-indigo-50 text-indigo-800 p-3 text-[12px]">
+                                                 완료! 조각 합이 정확합니다. +50P
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             `;
+             
+             document.body.appendChild(modal);
+             
+             // 게임 초기화
+             initializeAreaQuest();
+             startQuestTimer();
+             
+             // ESC 키로 모달 닫기
+             document.addEventListener('keydown', function(e) {
+                 if (e.key === 'Escape') {
+                     closeAreaQuest();
+                 }
+             });
+         }
+
+         // 도형의 넓이 퀴즈 닫기
+         function closeAreaQuest() {
+             const modal = document.getElementById('area-quest-modal');
+             if (modal) {
+                 modal.remove();
+             }
+             
+             // 결과 팝업도 함께 제거
+             const resultPopup = document.getElementById('quest-result-popup');
+             if (resultPopup) {
+                 resultPopup.remove();
+             }
+         }
+
+         // 도형의 넓이 퀴즈 초기화
+         function initializeAreaQuest() {
+             renderTilingGrid();
+             renderDecomposeGrid();
+             updateQuestProgress();
+             updateQuestTimer();
+         }
+
+         // 타일링 그리드 렌더링
+         function renderTilingGrid() {
+             const grid = document.getElementById('tiling-grid');
+             if (!grid) return;
+             
+             grid.innerHTML = '';
+             
+             for (let y = 0; y < 8; y++) {
+                 for (let x = 0; x < 12; x++) {
+                     const cell = document.createElement('button');
+                     cell.className = 'w-6 h-6 border border-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 hover:z-10';
+                     cell.dataset.x = x;
+                     cell.dataset.y = y;
+                     
+                     if (tilingTarget[y][x] === '#') {
+                         cell.classList.add('bg-blue-100', 'border-blue-200');
+                     } else {
+                         cell.classList.add('bg-white', 'border-gray-200');
+                     }
+                     
+                     cell.onclick = () => placeTile(x, y);
+                     grid.appendChild(cell);
+                 }
+             }
+         }
+
+         // 분해·합성 그리드 렌더링
+         function renderDecomposeGrid() {
+             const grid = document.getElementById('decompose-grid');
+             if (!grid) return;
+             
+             grid.innerHTML = '';
+             
+             for (let y = 0; y < 8; y++) {
+                 for (let x = 0; x < 10; x++) {
+                     const cell = document.createElement('button');
+                     cell.className = 'w-6 h-6 border border-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 hover:z-10';
+                     cell.dataset.x = x;
+                     cell.dataset.y = y;
+                     
+                     if (decomposeTarget[y][x] === '#') {
+                         cell.classList.add('bg-gray-200', 'border-gray-300');
+                     } else {
+                         cell.classList.add('bg-white', 'border-gray-200');
+                     }
+                     
+                     cell.onclick = () => placePiece(x, y);
+                     grid.appendChild(cell);
+                 }
+             }
+         }
+
+         // 게임 상태 변수들
+         let questCurrentMode = 'tiling';
+         let questTimeLeft = 45;
+         let questCombo = 0;
+         let questScore = 0;
+         let questTilingCompleted = false;
+         let questDecomposeCompleted = false;
+         let questSelectedTileType = '1x1';
+         let questTileDirection = 'H';
+         let questPlacedTiles = [];
+         let questNextTileId = 1;
+         let questSelectedPiece = { key: 'A', w: 2, h: 2, label: '2×2' };
+         let questPlacedPieces = [];
+         let questNextPieceId = 1;
+
+         // 목표 모양들
+         const tilingTarget = [
+             "....######..",
+             "...#######..",
+             "...#####....",
+             "....####....",
+             "....####....",
+             ".....###....",
+             "............",
+             "............"
+         ];
+
+         const decomposeTarget = [
+             "..######..",
+             "..######..",
+             "..#####...",
+             "..#####...",
+             "..####....",
+             "..####....",
+             "..........",
+             ".........."
+         ];
+
+         // 모드 전환
+         function switchQuestMode(mode) {
+             questCurrentMode = mode;
+             
+             // 탭 스타일 변경
+             document.getElementById('tiling-tab').className = mode === 'tiling' ? 'bg-gradient-to-r from-indigo-500 to-mint-500 text-white px-4 py-2 rounded-xl text-[12px] font-medium' : 'border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-xl text-[12px] font-medium';
+             document.getElementById('decompose-tab').className = mode === 'decompose' ? 'bg-gradient-to-r from-indigo-500 to-mint-500 text-white px-4 py-2 rounded-xl text-[12px] font-medium' : 'border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-xl text-[12px] font-medium';
+             
+             // 콘텐츠 표시/숨김
+             document.getElementById('tiling-mode').style.display = mode === 'tiling' ? 'grid' : 'none';
+             document.getElementById('decompose-mode').style.display = mode === 'decompose' ? 'grid' : 'none';
+         }
+
+         // 타일 도구 선택
+         document.addEventListener('click', function(e) {
+             if (e.target.classList.contains('tile-tool')) {
+                 document.querySelectorAll('.tile-tool').forEach(btn => {
+                     btn.className = 'border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium tile-tool';
+                 });
+                 e.target.className = 'bg-gradient-to-r from-indigo-500 to-mint-500 text-white px-3 py-2 rounded-xl text-[12px] font-medium tile-tool';
+                 questSelectedTileType = e.target.dataset.type;
+                 
+                 // 1x2 타일일 때만 회전 버튼 활성화
+                 document.getElementById('rotate-btn').disabled = questSelectedTileType !== '1x2';
+             }
+             
+             if (e.target.classList.contains('piece-tool')) {
+                 document.querySelectorAll('.piece-tool').forEach(btn => {
+                     btn.className = 'border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-xl text-[12px] font-medium piece-tool';
+                 });
+                 e.target.className = 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-2 rounded-xl text-[12px] font-medium piece-tool';
+                 questSelectedPiece = {
+                     key: e.target.dataset.key,
+                     w: parseInt(e.target.dataset.w),
+                     h: parseInt(e.target.dataset.h),
+                     label: e.target.textContent
+                 };
+             }
+         });
+
+         // 타일 배치
+         function placeTile(x, y) {
+             const cells = getTileCells(x, y, questSelectedTileType, questTileDirection);
+             if (!canPlaceTile(cells)) return;
+             
+             const tile = {
+                 id: questNextTileId++,
+                 type: questSelectedTileType,
+                 dir: questTileDirection,
+                 cells: cells
+             };
+             
+             questPlacedTiles.push(tile);
+             updateTilingDisplay();
+             checkTilingComplete();
+             
+             // 콤보 증가
+             questCombo++;
+             updateQuestCombo();
+         }
+
+         // 타일 셀 계산
+         function getTileCells(x, y, type, dir) {
+             if (type === '1x1') return [[x, y]];
+             if (type === '2x2') return [[x, y], [x+1, y], [x, y+1], [x+1, y+1]];
+             if (type === '1x2') {
+                 return dir === 'H' ? [[x, y], [x+1, y]] : [[x, y], [x, y+1]];
+             }
+         }
+
+         // 타일 배치 가능 여부 확인
+         function canPlaceTile(cells) {
+             return cells.every(([x, y]) => {
+                 return x >= 0 && y >= 0 && x < 12 && y < 8 && 
+                        tilingTarget[y][x] === '#' && 
+                        !isCellCovered(x, y);
+             });
+         }
+
+         // 셀 커버 여부 확인
+         function isCellCovered(x, y) {
+             return questPlacedTiles.some(tile => 
+                 tile.cells.some(([tx, ty]) => tx === x && ty === y)
+             );
+         }
+
+         // 분해·합성 조각 배치
+         function placePiece(x, y) {
+             if (!canPlacePiece(x, y, questSelectedPiece.w, questSelectedPiece.h)) return;
+             
+             const piece = {
+                 id: questNextPieceId++,
+                 x: x,
+                 y: y,
+                 w: questSelectedPiece.w,
+                 h: questSelectedPiece.h,
+                 key: questSelectedPiece.key
+             };
+             
+             questPlacedPieces.push(piece);
+             updateDecomposeDisplay();
+             checkDecomposeComplete();
+             
+             // 콤보 증가
+             questCombo++;
+             updateQuestCombo();
+         }
+
+         // 조각 배치 가능 여부 확인
+         function canPlacePiece(x, y, w, h) {
+             if (x < 0 || y < 0 || x + w > 10 || y + h > 8) return false;
+             
+             for (let yy = 0; yy < h; yy++) {
+                 for (let xx = 0; xx < w; xx++) {
+                     if (decomposeTarget[y + yy][x + xx] !== '#') return false;
+                     if (isPieceCellCovered(x + xx, y + yy)) return false;
+                 }
+             }
+             return true;
+         }
+
+         // 조각 셀 커버 여부 확인
+         function isPieceCellCovered(x, y) {
+             return questPlacedPieces.some(piece => {
+                 for (let yy = 0; yy < piece.h; yy++) {
+                     for (let xx = 0; xx < piece.w; xx++) {
+                         if (piece.x + xx === x && piece.y + yy === y) return true;
+                     }
+                 }
+                 return false;
+             });
+         }
+
+         // 타일링 디스플레이 업데이트
+         function updateTilingDisplay() {
+             // 모든 셀 초기화
+             document.querySelectorAll('#tiling-grid .w-6').forEach(cell => {
+                 cell.className = 'w-6 h-6 border border-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 hover:z-10';
+                 const x = parseInt(cell.dataset.x);
+                 const y = parseInt(cell.dataset.y);
+                 
+                 if (tilingTarget[y][x] === '#') {
+                     cell.classList.add('bg-blue-100', 'border-blue-200');
+                 } else {
+                     cell.classList.add('bg-white', 'border-gray-200');
+                 }
+             });
+             
+             // 배치된 타일 표시
+             questPlacedTiles.forEach(tile => {
+                 tile.cells.forEach(([x, y]) => {
+                     const cell = document.querySelector(`#tiling-grid .w-6[data-x="${x}"][data-y="${y}"]`);
+                     if (cell) {
+                         cell.classList.remove('bg-blue-100', 'border-blue-200');
+                         cell.classList.add('bg-indigo-500', 'border-indigo-500');
+                     }
+                 });
+             });
+             
+             // 진행률 업데이트
+             const coveredCount = questPlacedTiles.reduce((sum, tile) => sum + tile.cells.length, 0);
+             const targetCount = tilingTarget.reduce((sum, row) => sum + row.split('').filter(c => c === '#').length, 0);
+             document.getElementById('tiling-progress').textContent = `면적 ${coveredCount}/${targetCount}`;
+         }
+
+         // 분해·합성 디스플레이 업데이트
+         function updateDecomposeDisplay() {
+             // 모든 셀 초기화
+             document.querySelectorAll('#decompose-grid .w-6').forEach(cell => {
+                 cell.className = 'w-6 h-6 border border-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 hover:z-10';
+                 const x = parseInt(cell.dataset.x);
+                 const y = parseInt(cell.dataset.y);
+                 
+                 if (decomposeTarget[y][x] === '#') {
+                     cell.classList.add('bg-gray-200', 'border-gray-300');
+                 } else {
+                     cell.classList.add('bg-white', 'border-gray-200');
+                 }
+             });
+             
+             // 배치된 조각 표시
+             questPlacedPieces.forEach(piece => {
+                 for (let yy = 0; yy < piece.h; yy++) {
+                     for (let xx = 0; xx < piece.w; xx++) {
+                         const cell = document.querySelector(`#decompose-grid .w-6[data-x="${piece.x + xx}"][data-y="${piece.y + yy}"]`);
+                         if (cell) {
+                             cell.classList.remove('bg-gray-200', 'border-gray-300');
+                             cell.classList.add('bg-emerald-500', 'border-emerald-500');
+                         }
+                     }
+                 }
+             });
+             
+             // 진행률 업데이트
+             const areaSum = questPlacedPieces.reduce((sum, piece) => sum + piece.w * piece.h, 0);
+             const targetArea = decomposeTarget.reduce((sum, row) => sum + row.split('').filter(c => c === '#').length, 0);
+             document.getElementById('decompose-progress').textContent = `합 ${areaSum} / 목표 ${targetArea}`;
+         }
+
+         // 타일링 완료 확인
+         function checkTilingComplete() {
+             const targetCount = tilingTarget.reduce((sum, row) => sum + row.split('').filter(c => c === '#').length, 0);
+             const coveredCount = questPlacedTiles.reduce((sum, tile) => sum + tile.cells.length, 0);
+             
+             if (coveredCount === targetCount && questPlacedTiles.every(tile => 
+                 tile.cells.every(([x, y]) => tilingTarget[y][x] === '#')
+             )) {
+                 questTilingCompleted = true;
+                 document.getElementById('tiling-complete').classList.remove('hidden');
+                 
+                 // 보상 지급
+                 const reward = 50 + Math.floor(questCombo * 10);
+                 questScore += reward;
+                 showQuestReward(reward, '타일링 완료!');
+                 
+                 // 다음 모드 해금
+                 setTimeout(() => {
+                     unlockDecomposeMode();
+                 }, 2000);
+             }
+         }
+
+         // 분해·합성 완료 확인
+         function checkDecomposeComplete() {
+             const targetArea = decomposeTarget.reduce((sum, row) => sum + row.split('').filter(c => c === '#').length, 0);
+             const areaSum = questPlacedPieces.reduce((sum, piece) => sum + piece.w * piece.h, 0);
+             
+             if (areaSum === targetArea && questPlacedPieces.every(piece => {
+                 for (let yy = 0; yy < piece.h; yy++) {
+                     for (let xx = 0; xx < piece.w; xx++) {
+                         if (decomposeTarget[piece.y + yy][piece.x + xx] !== '#') return false;
+                     }
+                 }
+                 return true;
+             })) {
+                 questDecomposeCompleted = true;
+                 document.getElementById('decompose-complete').classList.remove('hidden');
+                 
+                 // 보상 지급
+                 const reward = 50 + Math.floor(questCombo * 10);
+                 questScore += reward;
+                 showQuestReward(reward, '분해·합성 완료!');
+                 
+                 // 게임 완료
+                 setTimeout(() => {
+                     completeQuest();
+                 }, 2000);
+             }
+         }
+
+         // 분해·합성 모드 해금
+         function unlockDecomposeMode() {
+             document.getElementById('decompose-tab').disabled = false;
+             document.getElementById('decompose-tab').classList.remove('border', 'border-gray-300', 'bg-white', 'text-gray-700');
+             document.getElementById('decompose-tab').classList.add('bg-gradient-to-r', 'from-emerald-500', 'to-teal-500', 'text-white');
+             
+             // 알림 표시
+             showQuestNotification('새로운 모드가 해금되었습니다!', 'success');
+         }
+
+         // 게임 완료
+         function completeQuest() {
+             const finalScore = questScore + Math.floor(questTimeLeft * 2);
+             const finalCombo = questCombo;
+             
+             showQuestResult(finalScore, finalCombo);
+         }
+
+         // 보상 표시
+         function showQuestReward(points, message) {
+             const rewardDiv = document.createElement('div');
+             rewardDiv.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 shadow-2xl z-[1100] text-center';
+             rewardDiv.innerHTML = `
+                 <h3 class="text-lg font-bold text-emerald-800 mb-2">🎉 ${message}</h3>
+                 <p class="text-2xl font-bold text-emerald-600 mb-2">+${points}P</p>
+                 <p class="text-sm text-gray-600">콤보: ${questCombo}배</p>
+             `;
+             
+             document.body.appendChild(rewardDiv);
+             
+             setTimeout(() => {
+                 rewardDiv.remove();
+             }, 3000);
+         }
+
+         // 게임 결과 표시
+         function showQuestResult(score, combo) {
+             const resultDiv = document.createElement('div');
+             resultDiv.id = 'quest-result-popup';
+             resultDiv.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 shadow-2xl z-[1100] text-center max-w-md';
+             resultDiv.innerHTML = `
+                 <h3 class="text-xl font-bold text-indigo-800 mb-4">🎯 게임 완료!</h3>
+                 <div class="space-y-3 text-center">
+                     <div>
+                         <p class="text-sm text-gray-600">최종 점수</p>
+                         <p class="text-3xl font-bold text-indigo-600">${score}P</p>
+                     </div>
+                     <div>
+                         <p class="text-sm text-gray-600">최고 콤보</p>
+                         <p class="text-xl font-bold text-pink-600">${combo}배</p>
+                     </div>
+                     <div class="pt-3">
+                         <button class="bg-gradient-to-r from-indigo-500 to-mint-500 text-white px-6 py-2 rounded-xl font-medium" onclick="closeAreaQuest()">메인으로 돌아가기</button>
+                     </div>
+                 </div>
+             `;
+             
+             document.body.appendChild(resultDiv);
+         }
+
+         // 알림 표시
+         function showQuestNotification(message, type = 'info') {
+             const notification = document.createElement('div');
+             notification.className = `fixed top-4 right-4 p-3 rounded-lg text-white text-sm z-[1100] ${
+                 type === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
+             }`;
+             notification.textContent = message;
+             
+             document.body.appendChild(notification);
+             
+             setTimeout(() => {
+                 notification.remove();
+             }, 3000);
+         }
+
+         // 타일 회전
+         function rotateTile() {
+             if (questSelectedTileType === '1x2') {
+                 questTileDirection = questTileDirection === 'H' ? 'V' : 'H';
+             }
+         }
+
+         // 조각 회전
+         function rotatePiece() {
+             const temp = questSelectedPiece.w;
+             questSelectedPiece.w = questSelectedPiece.h;
+             questSelectedPiece.h = temp;
+             questSelectedPiece.label = `${questSelectedPiece.h}×${questSelectedPiece.w}`;
+             
+             // 버튼 텍스트 업데이트
+             document.querySelectorAll('.piece-tool').forEach(btn => {
+                 if (btn.dataset.key === questSelectedPiece.key) {
+                     btn.textContent = questSelectedPiece.label;
+                 }
+             });
+         }
+
+         // 타일 되돌리기
+         function undoTile() {
+             if (questPlacedTiles.length > 0) {
+                 questPlacedTiles.pop();
+                 updateTilingDisplay();
+                 questCombo = Math.max(0, questCombo - 1);
+                 updateQuestCombo();
+             }
+         }
+
+         // 조각 되돌리기
+         function undoPiece() {
+             if (questPlacedPieces.length > 0) {
+                 questPlacedPieces.pop();
+                 updateDecomposeDisplay();
+                 questCombo = Math.max(0, questCombo - 1);
+                 updateQuestCombo();
+             }
+         }
+
+         // 타일링 초기화
+         function resetTiling() {
+             questPlacedTiles = [];
+             updateTilingDisplay();
+             questCombo = 0;
+             updateQuestCombo();
+             document.getElementById('tiling-complete').classList.add('hidden');
+         }
+
+         // 분해·합성 초기화
+         function resetDecompose() {
+             questPlacedPieces = [];
+             updateDecomposeDisplay();
+             questCombo = 0;
+             updateQuestCombo();
+             document.getElementById('decompose-complete').classList.add('hidden');
+         }
+
+         // 콤보 업데이트
+         function updateQuestCombo() {
+             // 콤보 애니메이션 효과는 여기에 추가할 수 있습니다
+         }
+
+         // 진행률 업데이트
+         function updateQuestProgress() {
+             let progress = 10;
+             if (questTilingCompleted) progress += 30;
+             if (questDecomposeCompleted) progress += 60;
+             
+             const progressBar = document.getElementById('quest-progress');
+             if (progressBar) {
+                 progressBar.style.width = progress + '%';
+             }
+         }
+
+         // 퀘스트 타이머 시작
+         function startQuestTimer() {
+             const timerInterval = setInterval(() => {
+                 questTimeLeft--;
+                 updateQuestTimer();
+                 
+                 if (questTimeLeft <= 0) {
+                     clearInterval(timerInterval);
+                     questTimeUp();
+                 }
+             }, 1000);
+         }
+
+         // 퀘스트 타이머 업데이트
+         function updateQuestTimer() {
+             const minutes = Math.floor(questTimeLeft / 60);
+             const seconds = questTimeLeft % 60;
+             const timerElement = document.getElementById('quest-timer');
+             if (timerElement) {
+                 timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+             }
+         }
+
+         // 퀘스트 시간 종료
+         function questTimeUp() {
+             showQuestNotification('시간이 종료되었습니다!', 'info');
+             setTimeout(() => {
+                 completeQuest();
+             }, 2000);
+         }
+
+                 // 개수 세기 게임 시작
+        function startCountingGame() {
+            const popup = document.getElementById('counting-game-popup');
+            const iframe = document.getElementById('counting-game-iframe');
+            
+            popup.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+            
+            // iframe 소스를 설정하고 로드 완료 대기
+            iframe.src = 'counting-game.html';
+            
+            // iframe 로드 완료 후 포커스 설정
+            iframe.onload = function() {
+                iframe.style.opacity = '1';
+            };
+            
+            // 초기 투명도 설정
+            iframe.style.opacity = '0';
+            iframe.style.transition = 'opacity 0.3s ease-in-out';
+        }
+
+        // 아바타 상점 관련 함수들
+        const AVATAR_DATA = [
+            {
+                id: 'basic',
+                name: '기본 아바타',
+                category: 'free',
+                price: 0,
+                owned: true,
+                selected: true,
+                colors: ['from-blue-400', 'to-purple-500']
+            },
+            {
+                id: 'student',
+                name: '학생 아바타',
+                category: 'free',
+                price: 0,
+                owned: true,
+                selected: false,
+                colors: ['from-green-400', 'to-teal-500']
+            },
+            {
+                id: 'wizard',
+                name: '마법사 아바타',
+                category: 'premium',
+                price: 500,
+                owned: true,
+                selected: false,
+                colors: ['from-purple-400', 'to-pink-500']
+            },
+            {
+                id: 'knight',
+                name: '기사 아바타',
+                category: 'premium',
+                price: 800,
+                owned: true,
+                selected: false,
+                colors: ['from-gray-600', 'to-gray-800']
+            },
+            {
+                id: 'ninja',
+                name: '닌자 아바타',
+                category: 'premium',
+                price: 1000,
+                owned: false,
+                selected: false,
+                colors: ['from-black', 'to-gray-700']
+            },
+            {
+                id: 'robot',
+                name: '로봇 아바타',
+                category: 'seasonal',
+                price: 1500,
+                owned: false,
+                selected: false,
+                colors: ['from-blue-500', 'to-cyan-400']
+            },
+            {
+                id: 'dragon',
+                name: '드래곤 아바타',
+                category: 'seasonal',
+                price: 2000,
+                owned: false,
+                selected: false,
+                colors: ['from-red-500', 'to-orange-500']
+            },
+            {
+                id: 'unicorn',
+                name: '유니콘 아바타',
+                category: 'seasonal',
+                price: 2500,
+                owned: false,
+                selected: false,
+                colors: ['from-pink-400', 'to-purple-400']
+            }
+        ];
+
+        let currentAvatar = 'basic';
+
+        // 아바타 상점 열기
+        function openAvatarShop() {
+            document.getElementById('avatar-shop-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+            renderAvatarGrid('all');
+            setupAvatarShopEventListeners();
+            updateAvatarShopPoints();
+        }
+
+        // 아바타 상점 닫기
+        function closeAvatarShop() {
+            document.getElementById('avatar-shop-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto'; // 배경 스크롤 복원
+        }
+
+        // 경매 튜토리얼 열기
+        function openAuctionTutorial() {
+            document.getElementById('auction-tutorial-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+            initTutorial();
+        }
+
+        // 경매 튜토리얼 닫기
+        function closeAuctionTutorial() {
+            console.log('경매 튜토리얼 창 닫기');
+            document.getElementById('auction-tutorial-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto'; // 배경 스크롤 복원
+            // 슬라이드 상태 초기화
+            currentSlide = 0;
+            // 모든 슬라이드를 숨기고 첫 번째만 보이게
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach((slide, index) => {
+                if (index === 0) {
+                    slide.classList.remove('hidden');
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.add('hidden');
+                    slide.classList.remove('active');
+                }
+            });
+            // 인디케이터 초기화
+            updatePageIndicators(0);
+        }
+
+        // 튜토리얼 초기화
+        function initTutorial() {
+            currentSlide = 0;
+            console.log('튜토리얼 초기화, 현재 슬라이드:', currentSlide);
+            showSlide(0);
+            updateNavigation();
+            updatePageIndicators(0);
+        }
+
+        // 슬라이드 표시
+        function showSlide(slideIndex) {
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach((slide, index) => {
+                if (index === slideIndex) {
+                    slide.classList.remove('hidden');
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.add('hidden');
+                    slide.classList.remove('active');
+                }
+            });
+        }
+
+        // 다음 슬라이드
+        function nextSlide() {
+            if (currentSlide < 8) { // 총 9개 슬라이드 (0-8)
+                currentSlide++;
+                console.log('다음 슬라이드로 이동:', currentSlide);
+                showSlide(currentSlide);
+                updateNavigation();
+                updatePageIndicators(currentSlide);
+            } else if (currentSlide === 8) {
+                // 마지막 슬라이드에서 완료 버튼을 누르면 창 닫기
+                console.log('튜토리얼 완료, 창 닫기');
+                closeAuctionTutorial();
+            }
+        }
+
+        // 이전 슬라이드
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+                updateNavigation();
+                updatePageIndicators(currentSlide);
+            }
+        }
+
+        // 네비게이션 버튼 업데이트
+        function updateNavigation() {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === 8;
+            
+            if (currentSlide === 8) {
+                nextBtn.textContent = '완료';
+                nextBtn.onclick = () => {
+                    console.log('완료 버튼 클릭, 창 닫기');
+                    closeAuctionTutorial();
+                };
+            } else {
+                nextBtn.textContent = '다음';
+                nextBtn.onclick = nextSlide;
+            }
+        }
+
+        // 페이지 인디케이터 업데이트
+        function updatePageIndicators(activeIndex) {
+            const indicators = document.querySelectorAll('#page-indicators div');
+            console.log('인디케이터 업데이트:', activeIndex, '개수:', indicators.length);
+            indicators.forEach((indicator, index) => {
+                if (index === activeIndex) {
+                    indicator.classList.add('active');
+                    indicator.style.background = '#3b82f6';
+                    indicator.style.transform = 'scale(1.2)';
+                    console.log('활성화된 인디케이터:', index);
+                } else {
+                    indicator.classList.remove('active');
+                    indicator.style.background = '#d1d5db';
+                    indicator.style.transform = 'scale(1)';
+                }
+            });
+        }
+
+        // 퀴즈 결과 초기화
+        function resetQuizResults() {
+            const results = document.querySelectorAll('[id^="quiz-result-"]');
+            results.forEach(result => result.classList.add('hidden'));
+            
+            const choices = document.querySelectorAll('.quiz-choice');
+            choices.forEach(choice => {
+                choice.classList.remove('correct', 'incorrect');
+            });
+        }
+
+        // 퀴즈 선택 처리
+        function handleQuizChoice(quizNumber, choiceIndex, correctIndex) {
+            const choices = document.querySelectorAll(`#quiz-choices-${quizNumber} .quiz-choice`);
+            const result = document.getElementById(`quiz-result-${quizNumber}`);
+            
+            // 모든 선택지 비활성화
+            choices.forEach(choice => {
+                choice.style.pointerEvents = 'none';
+            });
+            
+            // 정답/오답 표시
+            choices.forEach((choice, index) => {
+                if (index === correctIndex) {
+                    choice.classList.add('correct');
+                } else if (index === choiceIndex && index !== correctIndex) {
+                    choice.classList.add('incorrect');
+                }
+            });
+            
+            // 결과 표시
+            result.classList.remove('hidden');
+            
+            // 2초 후 다음 슬라이드로 자동 이동
+            setTimeout(() => {
+                nextSlide();
+            }, 2000);
+        }
+
+        // 전역 변수
+        let currentSlide = 0;
+
+        // 아바타 그리드 렌더링
+        function renderAvatarGrid(category) {
+            const grid = document.getElementById('avatar-grid');
+            const filteredAvatars = category === 'all' ? AVATAR_DATA : AVATAR_DATA.filter(avatar => avatar.category === category);
+            
+            grid.innerHTML = filteredAvatars.map(avatar => `
+                <div class="avatar-item ${avatar.owned ? 'owned' : ''} ${avatar.selected ? 'selected' : ''} ${!avatar.owned ? 'locked' : ''}" 
+                     data-avatar-id="${avatar.id}" onclick="selectAvatar('${avatar.id}')">
+                                    <div class="w-20 h-20 bg-gradient-to-br ${avatar.colors.join(' ')} rounded-full flex items-center justify-center shadow-lg border-2 border-white mx-auto mb-3 overflow-hidden">
+                        ${avatar.id === 'basic' ? `
+                            <img src="assets/tennis_pet_transparent.svg" class="w-14 h-14" alt="테니스 펫 아바타">
+                        ` : avatar.id === 'student' ? `
+                            <img src="assets/avatar_student.svg" class="w-14 h-14" alt="학생 아바타">
+                        ` : avatar.id === 'wizard' ? `
+                            <img src="assets/avatar_wizard.svg" class="w-14 h-14" alt="마법사 아바타">
+                        ` : avatar.id === 'knight' ? `
+                            <img src="assets/avatar_knight.svg" class="w-14 h-14" alt="기사 아바타">
+                        ` : avatar.id === 'ninja' ? `
+                            <img src="assets/avatar_ninja.svg" class="w-14 h-14" alt="닌자 아바타">
+                        ` : avatar.id === 'robot' ? `
+                            <img src="assets/avatar_robot.svg" class="w-14 h-14" alt="로봇 아바타">
+                        ` : avatar.id === 'dragon' ? `
+                            <img src="assets/avatar_dragon.svg" class="w-14 h-14" alt="드래곤 아바타">
+                        ` : avatar.id === 'unicorn' ? `
+                            <img src="assets/avatar_unicorn.svg" class="w-14 h-14" alt="유니콘 아바타">
+                        ` : `
+                            <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <!-- 기본 사람 아이콘 (기타 아바타용) -->
+                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                        `}
+                    </div>
+                    <h4 class="font-medium text-slate-800 text-xs mb-1">${avatar.name}</h4>
+                    <div class="flex items-center justify-center gap-1">
+                        ${avatar.owned ? 
+                            '<span class="text-xs text-green-600 font-medium">보유 중</span>' : 
+                            `<span class="text-xs text-slate-600">${avatar.price}P</span>`
+                        }
+                    </div>
+                    ${avatar.selected ? '<div class="mt-1 text-xs text-blue-600 font-medium">착용 중</div>' : ''}
+                </div>
+            `).join('');
+        }
+
+        // 아바타 선택
+        function selectAvatar(avatarId) {
+            const avatar = AVATAR_DATA.find(a => a.id === avatarId);
+            if (!avatar.owned) {
+                // 구매 확인 모달 표시
+                showAvatarPurchaseModal(avatar);
+                return;
+            }
+
+            // 기존 선택 해제
+            AVATAR_DATA.forEach(a => a.selected = false);
+            // 새 아바타 선택
+            avatar.selected = true;
+            currentAvatar = avatarId;
+            
+            // 아바타 상점 업데이트
+            renderAvatarGrid(document.querySelector('.avatar-category-btn.active').dataset.category);
+            updateCurrentAvatarDisplay();
+            
+            // 메인 화면 아바타 즉시 업데이트
+            updateMainAvatar();
+            
+            // 아바타 상점 닫기 (선택사항)
+            // closeAvatarShop();
+        }
+
+        // 아바타 구매 모달 표시
+        function showAvatarPurchaseModal(avatar) {
+            const modal = document.getElementById('avatar-purchase-modal');
+            const avatarImage = document.getElementById('purchase-avatar-image');
+            const avatarName = document.getElementById('purchase-avatar-name');
+            const avatarPrice = document.getElementById('purchase-avatar-price');
+            
+            // 아바타 이미지 설정
+            if (avatar.id === 'basic') {
+                avatarImage.innerHTML = `<img src="assets/tennis_pet_transparent.svg" class="w-12 h-12" alt="테니스 펫 아바타">`;
+            } else if (avatar.id === 'student') {
+                avatarImage.innerHTML = `<img src="assets/avatar_student.svg" class="w-12 h-12" alt="학생 아바타">`;
+            } else if (avatar.id === 'wizard') {
+                avatarImage.innerHTML = `<img src="assets/avatar_wizard.svg" class="w-12 h-12" alt="마법사 아바타">`;
+            } else if (avatar.id === 'knight') {
+                avatarImage.innerHTML = `<img src="assets/avatar_knight.svg" class="w-12 h-12" alt="기사 아바타">`;
+            } else if (avatar.id === 'ninja') {
+                avatarImage.innerHTML = `<img src="assets/avatar_ninja.svg" class="w-12 h-12" alt="닌자 아바타">`;
+            } else if (avatar.id === 'robot') {
+                avatarImage.innerHTML = `<img src="assets/avatar_robot.svg" class="w-12 h-12" alt="로봇 아바타">`;
+            } else if (avatar.id === 'dragon') {
+                avatarImage.innerHTML = `<img src="assets/avatar_dragon.svg" class="w-12 h-12" alt="드래곤 아바타">`;
+            } else if (avatar.id === 'unicorn') {
+                avatarImage.innerHTML = `<img src="assets/avatar_unicorn.svg" class="w-12 h-12" alt="유니콘 아바타">`;
+            }
+            
+            // 아바타 이름과 가격 설정
+            avatarName.textContent = avatar.name;
+            avatarPrice.textContent = `${avatar.price}P`;
+            
+            // 모달 표시
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            // 현재 선택된 아바타 ID 저장
+            window.currentPurchaseAvatarId = avatar.id;
+        }
+
+        // 아바타 구매 모달 닫기
+        function closeAvatarPurchaseModal() {
+            const modal = document.getElementById('avatar-purchase-modal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            window.currentPurchaseAvatarId = null;
+        }
+
+        // 아바타 구매 확인
+        function confirmAvatarPurchase() {
+            const avatarId = window.currentPurchaseAvatarId;
+            if (avatarId) {
+                const avatar = AVATAR_DATA.find(a => a.id === avatarId);
+                if (avatar) {
+                    // 구매 로직 실행
+                    avatar.owned = true;
+                    renderAvatarGrid(document.querySelector('.avatar-category-btn.active').dataset.category);
+                    updateCurrentAvatarDisplay();
+                    
+                    // 모달 닫기
+                    closeAvatarPurchaseModal();
+                    
+                    // 구매 완료 알림 (선택사항)
+                    setTimeout(() => {
+                        alert(`🎉 ${avatar.name} 구매 완료! 이제 착용할 수 있어요!`);
+                    }, 100);
+                }
+            }
+        }
+
+        // 현재 아바타 표시 업데이트
+        function updateCurrentAvatarDisplay() {
+            const currentAvatarData = AVATAR_DATA.find(a => a.id === currentAvatar);
+            const currentAvatarElement = document.querySelector('#avatar-shop-modal .border-t .w-20');
+            const currentAvatarName = document.querySelector('#avatar-shop-modal .border-t .font-medium');
+            
+            if (currentAvatarData && currentAvatarElement && currentAvatarName) {
+                currentAvatarElement.className = `w-20 h-20 bg-gradient-to-br ${currentAvatarData.colors.join(' ')} rounded-full flex items-center justify-center shadow-lg border-4 border-white`;
+                currentAvatarName.textContent = currentAvatarData.name;
+            }
+        }
+
+        // 메인 화면 아바타 업데이트
+        function updateMainAvatar() {
+            const currentAvatarData = AVATAR_DATA.find(a => a.id === currentAvatar);
+            const mainAvatar = document.querySelector('.card-shadow .w-48');
+            
+            if (currentAvatarData && mainAvatar) {
+                // 아바타 이미지와 배경색 모두 업데이트
+                mainAvatar.className = `w-48 h-48 bg-gradient-to-br ${currentAvatarData.colors.join(' ')} rounded-full flex items-center justify-center shadow-lg border-4 border-white`;
+                
+                // 아바타 이미지도 업데이트
+                const avatarImg = mainAvatar.querySelector('img');
+                if (avatarImg) {
+                    if (currentAvatarData.id === 'basic') {
+                        avatarImg.src = 'assets/tennis_pet_transparent.svg';
+                    } else if (currentAvatarData.id === 'student') {
+                        avatarImg.src = 'assets/avatar_student.svg';
+                    } else if (currentAvatarData.id === 'wizard') {
+                        avatarImg.src = 'assets/avatar_wizard.svg';
+                    } else if (currentAvatarData.id === 'knight') {
+                        avatarImg.src = 'assets/avatar_knight.svg';
+                    } else if (currentAvatarData.id === 'ninja') {
+                        avatarImg.src = 'assets/avatar_ninja.svg';
+                    } else if (currentAvatarData.id === 'robot') {
+                        avatarImg.src = 'assets/avatar_robot.svg';
+                    } else if (currentAvatarData.id === 'dragon') {
+                        avatarImg.src = 'assets/avatar_dragon.svg';
+                    } else if (currentAvatarData.id === 'unicorn') {
+                        avatarImg.src = 'assets/avatar_unicorn.svg';
+                    }
+                }
+            }
+        }
+
+        // 아바타 상점 포인트 업데이트
+        function updateAvatarShopPoints() {
+            const pointsElement = document.getElementById('avatar-shop-points');
+            if (pointsElement) {
+                // 메인 화면의 포인트 정보를 가져와서 표시
+                const mainPointsElement = document.querySelector('.text-lg.font-extrabold.text-yellow-500');
+                if (mainPointsElement) {
+                    pointsElement.textContent = mainPointsElement.textContent;
+                } else {
+                    // 기본값 설정
+                    pointsElement.textContent = '1,240P';
+                }
+            }
+        }
+
+        // 아바타 상점 이벤트 리스너 설정
+        function setupAvatarShopEventListeners() {
+            const categoryButtons = document.querySelectorAll('.avatar-category-btn');
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // 기존 활성 버튼 비활성화
+                    categoryButtons.forEach(btn => btn.classList.remove('active'));
+                    // 현재 버튼 활성화
+                    this.classList.add('active');
+                    // 해당 카테고리 아바타 표시
+                    renderAvatarGrid(this.dataset.category);
+                });
+            });
+        }
+
+        // 풍선 덧셈 게임 시작 (개수 세기 게임과 동일한 방식)
+        function openBalloonAdditionGame() {
+            const popup = document.getElementById('balloon-addition-game-popup');
+            const iframe = document.getElementById('balloon-addition-game-iframe');
+            
+            popup.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+            
+            // iframe 소스를 설정하고 로드 완료 대기
+            iframe.src = 'balloon_addition_game.html';
+            
+            // iframe 로드 완료 후 포커스 설정
+            iframe.onload = function() {
+                iframe.style.opacity = '1';
+            };
+            
+            // 초기 투명도 설정
+            iframe.style.opacity = '0';
+            iframe.style.transition = 'opacity 0.3s ease-in-out';
+        }
+
+        // Pet Studio 모달 팝업 열기
+        function openPetStudio() {
+            const popup = document.getElementById('pet-studio-popup');
+            const iframe = document.getElementById('pet-studio-iframe');
+            
+            popup.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+            
+            // iframe 소스를 설정하고 로드 완료 대기
+            iframe.src = 'petstudio.html';
+            
+            // iframe 로드 완료 후 포커스 설정
+            iframe.onload = function() {
+                iframe.style.opacity = '1';
+            };
+            
+            // 초기 투명도 설정
+            iframe.style.opacity = '0';
+            iframe.style.transition = 'opacity 0.3s ease-in-out';
+        }
+
+        // Pet Studio 모달 팝업 닫기
+        function closePetStudio() {
+            document.getElementById('pet-studio-popup').classList.add('hidden');
+            document.body.style.overflow = 'auto'; // 배경 스크롤 복원
+        }
+
+        // 개수 세기 게임 모달 팝업 닫기
+        function closeCountingGame() {
+            document.getElementById('counting-game-popup').classList.add('hidden');
+            document.body.style.overflow = 'auto'; // 배경 스크롤 복원
+        }
+
+        // 풍선 덧셈 게임 모달 팝업 닫기
+        function closeBalloonAdditionGame() {
+            document.getElementById('balloon-addition-game-popup').classList.add('hidden');
+            document.body.style.overflow = 'auto'; // 배경 스크롤 복원
+        }
+
+        // 진행 중 과제 카드 고도화 기능
+        const ALL_TASKS = [
+            {id:'t1', scope:'today', title:'뎃셈 연습', subject:'연산', progress:1.0, estimateMin:5, rewardPoint:40},
+            {id:'t2', scope:'today', title:'개수 세기 퀴즈', subject:'연산', progress:0.2, estimateMin:3, rewardPoint:30},
+            {id:'t3', scope:'today', title:'도형 넓이 1단계', subject:'도형', progress:0.35, estimateMin:4, rewardPoint:25},
+            {id:'t4', scope:'week', title:'규칙 찾기 챌린지', subject:'규칙', progress:0.55, estimateMin:6, rewardPoint:45},
+            {id:'t5', scope:'week', title:'분수의 덧셈 ①', subject:'분수', progress:0.8, estimateMin:5, rewardPoint:50},
+            {id:'t6', scope:'all', title:'시각/시간 퍼즐', subject:'시각', progress:0.15, estimateMin:5, rewardPoint:25},
+        ];
+
+        const ICONS = {
+            '분수': fracIcon(),
+            '도형': triIcon(),
+            '연산': plusIcon(),
+            '규칙': patternIcon(),
+            '시각': clockIcon()
+        };
+
+        // 필터 이벤트 리스너 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            const filters = {
+                today: document.getElementById('f-today'),
+                week: document.getElementById('f-week'),
+                all: document.getElementById('f-all')
+            };
+            
+            let scope = 'today';
+            
+            Object.entries(filters).forEach(([k, el]) => {
+                el.addEventListener('click', () => {
+                    scope = k;
+                    setActiveFilter();
+                    renderProgress();
+                });
+            });
+
+            function setActiveFilter() {
+                Object.entries(filters).forEach(([k, el]) => {
+                    const active = k === scope;
+                    el.classList.toggle('bg-white', active);
+                    el.classList.toggle('text-blue-700', active);
+                    el.classList.toggle('shadow', active);
+                    el.classList.toggle('text-white/90', !active);
+                    el.classList.toggle('hover:bg-white/10', !active);
+                    el.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            }
+
+            function renderProgress() {
+                const data = ALL_TASKS.filter(t => 
+                    scope === 'all' ? true : 
+                    (t.scope === 'today' || (scope === 'week' && (t.scope === 'today' || t.scope === 'week')))
+                );
+                
+                let sumProgress = 0;
+                data.forEach(t => {
+                    sumProgress += t.progress;
+                });
+
+                // 메인 진행률 바 업데이트
+                const mainProgressBar = document.getElementById('main-progress-bar');
+                if (mainProgressBar) {
+                    const avgProgress = data.length ? sumProgress / data.length : 0;
+                    const progressPercent = Math.round(avgProgress * 100);
+                    mainProgressBar.style.width = progressPercent + '%';
+                }
+
+                const avg = data.length ? sumProgress / data.length : 0;
+                document.getElementById('totalPct').textContent = `(${data.length}개 중 진행률 ${Math.round(avg * 100)}%)`;
+
+                // Up next (미완료 중 가장 진행률 낮은 것)
+                const up = [...data].filter(t => t.progress < 1).sort((a, b) => a.progress - b.progress)[0];
+                if (up) {
+                    document.getElementById('nextTitle').textContent = up.title;
+                    document.getElementById('nextBar').style.width = Math.round(up.progress * 100) + '%';
+                    document.getElementById('nextEta').querySelector('b').textContent = up.estimateMin;
+                    
+                    // 보상 포인트 업데이트
+                    const rewardElement = document.querySelector('.bg-gradient-to-r.from-yellow-400.to-orange-400');
+                    if (rewardElement) {
+                        rewardElement.innerHTML = `보상 <b>${up.rewardPoint}P</b>`;
+                    }
+                }
+
+                // 이어하기 버튼 이벤트 연결 (뎃셈 연습 우선)
+                document.getElementById('btnContinue').onclick = () => {
+                    // 뎃셈 연습이 있으면 우선 실행
+                    const additionTask = data.find(t => t.title === '뎃셈 연습');
+                    if (additionTask) {
+                        openBalloonAdditionGame();
+                    } else if (up && up.title === '개수 세기 퀴즈') {
+                        startCountingGame();
+                    } else if (up) {
+                        alert(`"${up.title}" 이어하기 팝업 열기`);
+                    } else {
+                        // 모든 과제가 완료된 경우 뎃셈 연습 실행
+                        openBalloonAdditionGame();
+                    }
+                };
+
+                // 전체 보기 버튼
+                document.getElementById('btnAll').onclick = () => alert('과제 전체 보기로 이동');
+            }
+
+            // 초기 렌더링
+            setActiveFilter();
+            renderProgress();
+        });
+
+        // SVG 아이콘 함수들
+        function triIcon() {
+            return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 4l7 14H5L12 4z" fill="#4f46e5" stroke="#312e81" stroke-width="1.5"/></svg>`;
+        }
+        function fracIcon() {
+            return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M5 8h8M5 16h8M14 6l4 12" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"/></svg>`;
+        }
+        function plusIcon() {
+            return `<svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/></svg>`;
+        }
+        function patternIcon() {
+            return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="4" width="6" height="6" rx="2" fill="#f59e0b"/><rect x="14" y="4" width="6" height="6" rx="2" fill="#6366f1"/>
+                <rect x="4" y="14" width="6" height="6" rx="2" fill="#22d3ee"/><rect x="14" y="14" width="6" height="6" rx="2" fill="#10b981"/></svg>`;
+        }
+        function clockIcon() {
+            return `<svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/><path d="M12 7v6l4 2" stroke="#0369a1" stroke-width="2" stroke-linecap="round"/></svg>`;
+        }
+        function dotIcon() {
+            return `<svg width="10" height="10"><circle cx="5" cy="5" r="5" fill="#94a3b8"/></svg>`;
+        }
+
+        // 평가 응시 현황 카드 탭 기능
+        document.addEventListener('DOMContentLoaded', function() {
+            const evalTabButtons = document.querySelectorAll('.eval-tab-btn');
+            const rateElement = document.getElementById('rate');
+            const avgElement = document.getElementById('avg');
+            const missElement = document.getElementById('miss');
+            const dueElement = document.getElementById('due');
+
+            const evalTabData = {
+                today: { rate: '70%', avg: '84점', miss: '2건', due: '1건' },
+                week: { rate: '76%', avg: '86점', miss: '3건', due: '1건' },
+                all: { rate: '82%', avg: '88점', miss: '5건', due: '0건' }
+            };
+
+            function setActiveEvalTab(which) {
+                evalTabButtons.forEach(btn => {
+                    const active = btn.dataset.tab === which;
+                    btn.classList.toggle('bg-white', active);
+                    btn.classList.toggle('text-teal-700', active);
+                    btn.classList.toggle('shadow', active);
+                    btn.classList.toggle('text-white/90', !active);
+                });
+
+                const data = evalTabData[which];
+                if (rateElement) rateElement.textContent = data.rate;
+                if (avgElement) avgElement.textContent = data.avg;
+                if (missElement) missElement.textContent = data.miss;
+                if (dueElement) dueElement.textContent = data.due;
+            }
+
+            evalTabButtons.forEach(btn => {
+                btn.addEventListener('click', () => setActiveEvalTab(btn.dataset.tab));
+            });
+
+            // 초기 탭 설정
+            setActiveEvalTab('today');
+        });
+
+    </script>
+
+
+
+    <!-- Pet Studio 모달 팝업 (개수 세기 게임과 동일한 스타일) -->
+    <div id="pet-studio-popup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-2">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-[95vw] w-full h-[98vh] overflow-hidden relative">
+            <!-- 닫기 버튼 - 우측 최상단에 작게 배치 -->
+            <button onclick="closePetStudio()" class="absolute top-3 right-3 z-10 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors bg-white shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="h-full overflow-hidden">
+                <iframe id="pet-studio-iframe" class="w-full h-full border-0" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 개수 세기 게임 모달 팝업 -->
+    <div id="counting-game-popup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-2">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-[95vw] w-full h-[98vh] overflow-hidden relative">
+            <!-- 닫기 버튼 - 우측 최상단에 작게 배치 -->
+            <button onclick="closeCountingGame()" class="absolute top-3 right-3 z-10 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors bg-white shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="h-full overflow-hidden">
+                <iframe id="counting-game-iframe" class="w-full h-full border-0" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 풍선 덧셈 게임 모달 팝업 -->
+    <div id="balloon-addition-game-popup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-2">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-[95vw] w-full h-[98vh] overflow-hidden relative">
+            <!-- 닫기 버튼 - 우측 최상단에 작게 배치 -->
+            <button onclick="closeBalloonAdditionGame()" class="absolute top-3 right-3 z-10 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors bg-white shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="h-full overflow-hidden">
+                <iframe id="balloon-addition-game-iframe" class="w-full h-full border-0" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 경매 튜토리얼 모달 팝업 -->
+    <div id="auction-tutorial-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 relative overflow-hidden">
+            <!-- 닫기 버튼 -->
+            <button onclick="closeAuctionTutorial()" class="absolute top-3 right-3 z-10 text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors bg-white shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            
+            <!-- 헤더 -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white text-center">
+                <div class="text-4xl mb-2">🔨</div>
+                <h3 class="text-xl font-bold">경매 튜토리얼</h3>
+                <p class="text-blue-100 text-sm mt-1">초등학생을 위한 경매 완벽 가이드</p>
+            </div>
+            
+            <!-- 슬라이드 컨테이너 -->
+            <div id="tutorial-slides" class="relative">
+                <!-- 슬라이드 1: 경매란? -->
+                <div class="slide active" data-slide="0">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-blue-600 font-bold text-2xl">1</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">경매란?</h4>
+                        </div>
+                        <div class="space-y-3 text-center">
+                            <p class="text-slate-700">원하는 아이템에 학습 포인트를 걸어요.</p>
+                            <p class="text-slate-700">가장 높은 사람이 가져가요. 진짜 돈은 쓰지 않아요.</p>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
+                            <div class="flex items-center justify-center gap-2 text-blue-700">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <span class="font-semibold">💡 핵심 포인트</span>
+                            </div>
+                            <p class="text-sm text-blue-700 mt-2 text-center">포인트로만 거래하는 안전한 경매예요!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 슬라이드 2: 화면 살펴보기 -->
+                <div class="slide hidden" data-slide="1">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-green-600 font-bold text-2xl">2</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">화면 살펴보기</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                                <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">📱</span>
+                                </div>
+                                <span class="text-slate-700">입찰 +50P, 즉시구매, 왕관(최고 입찰자), 타이머가 보여요.</span>
+                            </div>
+                            <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                                <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">🎯</span>
+                                </div>
+                                <span class="text-slate-700">아이템 카드에는 이름·현재가·남은 시간이 표시돼요.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 슬라이드 3: 입찰하기 -->
+                <div class="slide hidden" data-slide="2">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-purple-600 font-bold text-2xl">3</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">입찰하기</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                                <p class="text-slate-700 text-center mb-3">'입찰 +50P'를 누르면 현재가가 50P 올라요.</p>
+                                <div class="flex items-center justify-center gap-2 text-purple-700">
+                                    <span class="font-semibold">예시:</span>
+                                    <span class="bg-white px-3 py-1 rounded-lg border">현재가: 540P</span>
+                                    <span class="text-2xl">→</span>
+                                    <span class="bg-purple-500 text-white px-3 py-1 rounded-lg">590P</span>
+                                </div>
+                            </div>
+                            <p class="text-slate-700 text-center">낙찰될 때만 포인트가 차감돼요.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 슬라이드 4: 종료 규칙 -->
+                <div class="slide hidden" data-slide="3">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-orange-600 font-bold text-2xl">4</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">종료 규칙</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                                    <div class="text-2xl mb-2">⏰</div>
+                                    <p class="text-sm text-slate-700">타이머 0초</p>
+                                </div>
+                                <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                                    <div class="text-2xl mb-2">💎</div>
+                                    <p class="text-sm text-slate-700">즉시구매</p>
+                                </div>
+                            </div>
+                            <p class="text-slate-700 text-center">동점이면 먼저 누른 사람이 승리해요.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 슬라이드 5: 똑똑한 팁 -->
+                <div class="slide hidden" data-slide="4">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-yellow-600 font-bold text-2xl">5</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">똑똑한 팁</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p class="text-slate-700 text-center">예산을 정하고 입찰해요(예: 오늘은 1000P).</p>
+                            </div>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p class="text-slate-700 text-center">마지막 10초에 경쟁이 치열해요. 왕관 유지 확인!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 슬라이드 6: 예절 지키기 -->
+                <div class="slide hidden" data-slide="5">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-red-600 font-bold text-2xl">6</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">예절 지키기</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p class="text-slate-700 text-center">도배·방해는 금지, 문제가 있으면 신고해요.</p>
+                            </div>
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p class="text-slate-700 text-center">지면 '축하해!'라고 말해요. 모두 기분 좋아져요.</p>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 mt-4">
+                            <div class="flex items-center justify-center gap-2 text-indigo-700">
+                                <span class="font-semibold">🎯 다음 단계</span>
+                            </div>
+                            <p class="text-sm text-indigo-700 mt-2 text-center">이제 퀴즈를 풀어서 경매를 완벽하게 이해해보세요!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 퀴즈 슬라이드들 -->
+                <div class="slide hidden" data-slide="6">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-indigo-600 font-bold text-2xl">?</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">퀴즈 1/3</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-slate-700 text-center text-lg">현재가 540P일 때 '입찰 +50P'를 누르면 얼마가 되나요?</p>
+                            <div class="grid grid-cols-2 gap-3" id="quiz-choices-1">
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(1, 0, 1)">560P</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(1, 1, 1)">590P</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(1, 2, 1)">600P</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(1, 3, 1)">640P</button>
+                            </div>
+                            <div id="quiz-result-1" class="hidden">
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                    <p class="text-green-700 font-semibold">정답입니다! 🎉</p>
+                                    <p class="text-green-600 text-sm mt-1">'입찰 +50P'는 현재가에 50을 더합니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide hidden" data-slide="7">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-indigo-600 font-bold text-2xl">?</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">퀴즈 2/3</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-slate-700 text-center text-lg">같은 가격이면 누가 이기나요?</p>
+                            <div class="grid grid-cols-2 gap-3" id="quiz-choices-2">
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(2, 0, 1)">나중에 누른 사람</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(2, 1, 1)">먼저 누른 사람</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(2, 2, 1)">무작위 추첨</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(2, 3, 1)">시간이 더 남은 사람</button>
+                            </div>
+                            <div id="quiz-result-2" class="hidden">
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                    <p class="text-green-700 font-semibold">정답입니다! 🎉</p>
+                                    <p class="text-green-600 text-sm mt-1">동점일 때는 먼저 입찰한 참가자가 승리합니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide hidden" data-slide="8">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-indigo-600 font-bold text-2xl">?</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">퀴즈 3/3</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-slate-700 text-center text-lg">포인트는 언제 차감되나요?</p>
+                            <div class="grid grid-cols-2 gap-3" id="quiz-choices-3">
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(3, 0, 1)">입찰할 때마다</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(3, 1, 1)">내가 낙찰될 때</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(3, 2, 1)">경매 시작할 때</button>
+                                <button class="quiz-choice p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors" onclick="handleQuizChoice(3, 3, 1)">경매 연장될 때</button>
+                            </div>
+                            <div id="quiz-result-3" class="hidden">
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                    <p class="text-green-700 font-semibold">정답입니다! 🎉</p>
+                                    <p class="text-green-600 text-sm mt-1">내가 낙찰된 경우에만 실제 포인트가 차감됩니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 완료 슬라이드 -->
+                <div class="slide hidden" data-slide="9">
+                    <div class="p-6 space-y-4 text-center">
+                        <div class="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-3xl">🎉</span>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-800">튜토리얼 완료!</h4>
+                        <p class="text-slate-600">이제 경매를 자유롭게 즐길 수 있어요!</p>
+                        <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-4 mt-4">
+                            <p class="text-green-700 font-semibold">💡 다음 단계</p>
+                            <p class="text-green-600 text-sm mt-1">실제 경매에 참여해서 연습해보세요!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 하단 네비게이션 -->
+            <div class="bg-gray-50 px-6 py-4">
+                <!-- 페이지 인디케이터 (도트) -->
+                <div class="flex justify-center mb-3">
+                    <div class="flex space-x-2" id="page-indicators">
+                        <div class="w-2 h-2 bg-blue-400 rounded-full active"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    </div>
+                </div>
+                
+                <!-- 버튼 영역 -->
+                <div class="flex justify-between items-center">
+                    <button id="prev-btn" onclick="prevSlide()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        이전
+                    </button>
+                    
+                    <button id="next-btn" onclick="nextSlide()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200">
+                        다음
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

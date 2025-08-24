@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>개수 세기 게임 - MathQuest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      --bg:#f6f7f9;--card:#fff;--ink:#1f2937;--muted:#6b7280;
+      --primary:#3663ff;--mint:#3dd4c5;--pink:#ff6ab7;--ring:rgba(54,99,255,.25);
+      --shadow:0 8px 24px rgba(31,41,55,.08)
+    }
+    body{margin:0;background:linear-gradient(180deg,#fff6fb,#f0fbff);color:var(--ink);
+      font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+    .game-board{background:linear-gradient(180deg,#2f67ff,#2046d9);box-shadow:inset 0 6px 18px rgba(0,0,0,.2)}
+    .game-tray{background:#2b53c9;box-shadow:inset 0 10px 20px rgba(0,0,0,.25);border:4px solid #264ab5}
+    .choice-btn{background:linear-gradient(180deg,#ff6aa8,#ff3d86);box-shadow:0 8px 0 #d32f65;transition:all .1s}
+    .choice-btn:active{transform:translateY(4px);box-shadow:0 4px 0 #d32f65}
+    .hint-overlay{position:absolute;inset:12px;border:4px dotted rgba(255,255,255,.7);border-radius:16px;animation:pulse 1.4s ease-in-out infinite}
+    .hidden{display:none!important}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    @keyframes pop{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
+    .pop{animation:pop .25s ease}
+    /* Jelly sizes (bigger) */
+    .j-bear{position:relative;width:110px;height:100px}
+    .j-bear .ear{position:absolute;width:32px;height:32px;border-radius:50%}
+    .j-bear .ear.l{left:10px;top:0}.j-bear .ear.r{right:10px;top:0}
+    .j-bear .body{position:absolute;left:0;right:0;bottom:0;height:86px;border-radius:38px}
+    .j-cone{width:105px;height:105px;border-radius:22px;clip-path:polygon(50% 0%,100% 100%,0% 100%)}
+    .j-star{width:110px;height:110px;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+    /* 3-step pet gauge */
+    .gauge{display:flex;gap:6px}
+    .gseg{width:48px;height:14px;border-radius:8px;background:#d1d5db;transition:background .35s}
+    .gseg.filled{background:linear-gradient(90deg,#3663ff,#3dd4c5)}
+  </style>
+</head>
+<body>
+<div class="min-h-screen p-4 md:p-6">
+  <!-- Top bar: title + score/combo big -->
+  <div class="max-w-5xl mx-auto flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <span class="bg-indigo-600 text-white px-4 py-2 rounded-2xl text-2xl font-extrabold">개수 세기</span>
+      <span id="round-display" class="text-slate-600 text-lg">1 / 3</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="bg-white rounded-2xl px-4 py-2 shadow flex items-center gap-2">
+        <svg class="w-6 h-6 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span id="score-display" class="text-2xl font-extrabold text-slate-800">0P</span>
+      </div>
+      <div class="bg-white rounded-2xl px-4 py-2 shadow flex items-center gap-2">
+        <svg class="w-6 h-6 text-pink-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span class="text-lg text-slate-600">콤보</span>
+        <span id="combo-display" class="text-2xl font-extrabold text-slate-800">×1.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Board + choices -->
+  <div class="max-w-5xl mx-auto grid grid-cols-12 gap-4">
+    <!-- Board -->
+    <div class="col-span-12 lg:col-span-9 rounded-3xl shadow-lg bg-white">
+      <div class="p-4">
+        <div id="question-title" class="text-[18px] font-bold mb-2">노란 곰젤리는 몇 개?</div>
+        <div class="game-board rounded-3xl p-4">
+          <div class="game-tray relative h-[320px] rounded-2xl">
+            <div id="jelly-container" class="absolute inset-0"></div>
+            <div id="hint-overlay" class="hint-overlay hidden pointer-events-none"></div>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <button id="hint-btn" class="bg-white text-slate-700 border border-slate-200 rounded-xl text-[12px] px-3 py-2 hover:bg-slate-50">
+            <svg class="w-4 h-4 mr-1 inline" fill="currentColor" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            힌트
+          </button>
+          <button id="reset-btn" class="bg-white text-slate-700 border border-slate-200 rounded-xl text-[12px] px-3 py-2 hover:bg-slate-50">
+            다시하기
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Choices -->
+    <div id="choices-container" class="col-span-12 lg:col-span-3 flex lg:flex-col gap-3"></div>
+  </div>
+
+  <!-- Pet box -->
+  <div class="max-w-5xl mx-auto grid grid-cols-12 gap-4 mt-4">
+    <div class="col-span-12 lg:col-span-9 rounded-3xl bg-gradient-to-r from-pink-50 to-yellow-50">
+      <div class="p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="pet-icon" class="w-14 h-14 rounded-full bg-white grid place-items-center shadow">
+            <svg class="w-7 h-7 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <div>
+            <div class="text-[13px] text-slate-600 mb-1">펫 성장 게이지</div>
+            <div class="gauge">
+              <div id="g1" class="gseg"></div>
+              <div id="g2" class="gseg"></div>
+              <div id="g3" class="gseg"></div>
+            </div>
+          </div>
+        </div>
+        <div class="text-[12px] text-slate-600">3문제 연속 정답 시 모두 채워져요!</div>
+      </div>
+    </div>
+    <div class="col-span-12 lg:col-span-3 flex items-stretch">
+      <button id="next-btn" class="w-full rounded-2xl text-[13px] bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 font-medium transition-all">
+        다음
+        <svg class="w-4 h-4 ml-1 inline" fill="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ---------------- PRNG (시드 고정 난수) ---------------- */
+  let seed = Date.now() >>> 0;
+  function rand(){ // 32-bit LCG
+    seed = (1664525 * seed + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+  function randint(min,max){ return Math.floor(rand()*(max-min+1))+min; }
+
+  /* ---------------- 상태 ---------------- */
+  const COLORS = { bear:"#FFC83D", cone:"#FF7BA7", star:"#5EEAD4" };
+  const TYPES  = ["bear","cone","star"];
+  const TITLES = { bear:"노란 곰젤리는 몇 개?", cone:"분홍 콘젤리는 몇 개?", star:"초록 별젤리는 몇 개?" };
+
+  let currentRound=1, score=0, combo=1.0, missionStreak=0;
+  let hintUsedThisRound=false, lock=false;
+  let correctCount=0; // 0..3 (펫 게이지)
+
+  let currentQuestion=null;
+
+  /* ---------------- 유틸 ---------------- */
+  function shuffle(a){ return a.sort(()=>rand()-.5); }
+  function clamp(n,min,max){ return Math.max(min,Math.min(max,n)); }
+
+  /* ---------------- 문제 생성 (겹침 없음, 큰 젤리) ---------------- */
+  function makeRound(){
+    // 라운드마다 새로운 난수
+    rand(); rand();
+
+    const chosen = TYPES[Math.floor(rand()*TYPES.length)];
+    // 정답(선택된 젤리)의 개수: 2..5
+    const answer = randint(2,5);
+    // 다른 젤리는 0..3에서 뽑고 총합을 8~9 이하로 제한
+    let remainCap = randint(6,9) - answer; // 전체 목표 개수
+    const counts = { bear:0, cone:0, star:0 };
+    counts[chosen] = answer;
+    TYPES.filter(t=>t!==chosen).forEach(t=>{
+      const c = clamp(randint(0,3),0,Math.max(0,remainCap));
+      counts[t] = c;
+      remainCap -= c;
+    });
+
+    // 격자 배치 (4x2 셀, 셀크기 120x140) → 겹침 없음
+    const W=480, H=320, cellW=120, cellH=140;
+    const cells=[];
+    for(let cx=0; cx<4; cx++) for(let cy=0; cy<2; cy++) cells.push([cx,cy]);
+    shuffle(cells);
+
+    const items=[];
+    TYPES.forEach(t=>{
+      for(let i=0;i<counts[t];i++){
+        const [cx,cy] = cells.pop() || [randint(0,3),randint(0,1)];
+        const x = 15 + cx*cellW + randint(0, cellW-120); // 0~(셀폭-젤리폭) 안 랜덤
+        const y = 10 + cy*cellH + randint(0, cellH-120);
+        items.push({ id:items.length+1, type:t, x, y });
+      }
+    });
+
+    // 선택지: 정답 ±1, ±2, 무작위 보정
+    const cand = new Set([answer, answer+1, answer-1, answer+2, answer-2]);
+    const opts = Array.from(cand).filter(n=>n>0 && n<=9);
+    while(opts.length<3){
+      const r = randint(1,9);
+      if(!opts.includes(r)) opts.push(r);
+    }
+    shuffle(opts);
+    if(!opts.includes(answer)) opts[Math.floor(rand()*opts.length)] = answer;
+
+    return { chosen, items, answer, options: opts };
+  }
+
+  /* ---------------- 렌더링 ---------------- */
+  function jellyHTML(type,color,x,y){
+    if(type==="bear"){
+      return `<div class="absolute j-bear pop" style="left:${x}px;top:${y}px">
+        <div class="ear l" style="background:${color}"></div>
+        <div class="ear r" style="background:${color}"></div>
+        <div class="body" style="background:${color}"></div>
+      </div>`;
+    }else if(type==="cone"){
+      return `<div class="absolute j-cone pop" style="left:${x}px;top:${y}px;background:${color}"></div>`;
+    }else{
+      return `<div class="absolute j-star pop" style="left:${x}px;top:${y}px;background:${color}"></div>`;
+    }
+  }
+
+  function renderQuestion(){
+    document.getElementById("question-title").textContent = TITLES[currentQuestion.chosen];
+
+    const tray = document.getElementById("jelly-container");
+    tray.innerHTML = "";
+    currentQuestion.items.forEach(it=>{
+      tray.insertAdjacentHTML("beforeend", jellyHTML(it.type, COLORS[it.type], it.x, it.y));
+    });
+
+    const choices = document.getElementById("choices-container");
+    choices.innerHTML = "";
+    shuffle([...currentQuestion.options]).forEach(n=>{
+      const btn = document.createElement("button");
+      btn.className = "choice-btn flex-1 lg:h-24 h-16 rounded-[22px] text-white text-3xl font-extrabold";
+      btn.textContent = n;
+      btn.addEventListener("click", ()=> onAnswer(n), { passive: true });
+      choices.appendChild(btn);
+    });
+  }
+
+  /* ---------------- 상단/게이지 업데이트 ---------------- */
+  function updateDisplays(){
+    document.getElementById("round-display").textContent = `${currentRound} / 3`;
+    document.getElementById("score-display").textContent = `${score}P`;
+    document.getElementById("combo-display").textContent = `×${combo.toFixed(1)}`;
+
+    // 3칸 게이지
+    ["g1","g2","g3"].forEach((id,i)=>{
+      const el = document.getElementById(id);
+      if(i < correctCount) el.classList.add("filled");
+      else el.classList.remove("filled");
+    });
+  }
+
+  /* ---------------- 로직 ---------------- */
+  function onAnswer(val){
+    if(lock) return;
+    lock = true;
+    const correct = (val === currentQuestion.answer);
+
+    if(correct){
+      const mult = hintUsedThisRound? 1.0 : combo;
+      score += Math.round(50*mult);
+      combo = clamp(parseFloat((combo+0.1).toFixed(1)), 1.0, 1.5);
+      missionStreak = hintUsedThisRound ? 0 : missionStreak+1;
+      correctCount = clamp(correctCount+1, 0, 3);
+      // 펫 점프
+      const petIcon = document.getElementById("pet-icon");
+      petIcon.style.transform="scale(1.12)";
+      setTimeout(()=>petIcon.style.transform="scale(1)", 260);
+
+      updateDisplays();
+
+      // 1초 후 다음
+      setTimeout(next, 1000);
+    }else{
+      combo = 1.0;
+      missionStreak = 0;
+      updateDisplays();
+      setTimeout(()=>{ lock=false; }, 200);
+    }
+  }
+
+  function next(){
+    // 정답 오버레이 등 잠재 커버 제거
+    const covers = document.querySelectorAll(".fixed.z-50");
+    covers.forEach(el=>el.remove());
+
+    if(currentRound < 3){
+      currentRound++;
+      hintUsedThisRound=false;
+      lock=false;
+      // 새 문제 (시드 업데이트 보장)
+      currentQuestion = makeRound();
+      updateDisplays();
+      renderQuestion();
+    }else{
+      // 결과 - 귀엽고 알록달록한 팝업
+      showResultPopup();
+    }
+  }
+
+  function useHint(){
+    if(hintUsedThisRound) return;
+    hintUsedThisRound = true;
+    const h = document.getElementById("hint-overlay");
+    h.classList.remove("hidden");
+    setTimeout(()=>h.classList.add("hidden"), 1200);
+  }
+
+  function showResultPopup(){
+    // 귀엽고 알록달록한 결과 팝업
+    const popup = document.createElement('div');
+    popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    popup.innerHTML = `
+      <div class="bg-gradient-to-br from-pink-100 via-yellow-100 to-mint-100 rounded-3xl p-6 max-w-md mx-4 text-center shadow-2xl border-4 border-pink-300 relative overflow-hidden">
+        <!-- 배경 장식 -->
+        <div class="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full -translate-x-10 -translate-y-10 opacity-30"></div>
+        <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-yellow-300 to-orange-300 rounded-full translate-x-8 -translate-y-8 opacity-30"></div>
+        <div class="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-br from-mint-300 to-blue-300 rounded-full -translate-x-6 translate-y-6 opacity-30"></div>
+        
+        <!-- 메인 콘텐츠 -->
+        <div class="relative z-10" style="transform: scale(0.87);">
+          <div class="text-5xl mb-3 animate-bounce">🎉✨</div>
+          <h2 class="text-2xl font-extrabold text-indigo-800 mb-4 bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+            게임 완료!
+          </h2>
+          
+          <!-- 결과 카드들 -->
+          <div class="space-y-3 mb-5">
+            <div class="bg-white rounded-2xl p-3 shadow-lg border-2 border-pink-200">
+              <div class="flex items-center justify-center gap-2 mb-1">
+                <svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <span class="text-xs font-medium text-gray-600">최종 점수</span>
+              </div>
+              <p class="text-3xl font-extrabold text-amber-600">${score}P</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl p-3 shadow-lg border-2 border-purple-200">
+              <div class="flex items-center justify-center gap-2 mb-1">
+                <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <span class="text-xs font-medium text-gray-600">콤보</span>
+              </div>
+              <p class="text-2xl font-extrabold text-pink-600">×${combo.toFixed(1)}</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl p-3 shadow-lg border-2 border-mint-200">
+              <div class="flex items-center justify-center gap-2 mb-1">
+                <svg class="w-6 h-6 text-rose-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <span class="text-xs font-medium text-gray-600">펫 성장</span>
+              </div>
+              <div class="flex items-center justify-center gap-1">
+                ${[1,2,3].map(i => 
+                  `<div class="w-5 h-2.5 rounded-full ${i <= correctCount ? 'bg-gradient-to-r from-indigo-500 to-mint-500' : 'bg-gray-300'}"></div>`
+                ).join('')}
+              </div>
+              <p class="text-xl font-extrabold text-mint-600 mt-1">${correctCount}/3</p>
+            </div>
+          </div>
+          
+          <!-- 축하 메시지 -->
+          <div class="bg-gradient-to-r from-pink-200 to-purple-200 rounded-2xl p-3 mb-4">
+            <p class="text-base font-bold text-indigo-800">
+              ${correctCount === 3 ? '🎊 완벽해요! 펫이 완전히 성장했어요! 🎊' : 
+                correctCount === 2 ? '😊 잘했어요! 조금만 더 노력하면 펫이 완성돼요!' : 
+                '👍 좋아요! 다음에는 더 잘할 수 있을 거예요!'}
+            </p>
+          </div>
+          
+          <!-- 버튼 -->
+          <button onclick="this.closest('.fixed').remove(); resetGame();" 
+                  class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 to-purple-700 text-white px-6 py-3 rounded-2xl font-bold text-base shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-pink-300">
+            🎮 다시 하기
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // 팝업 등장 애니메이션
+    const modal = popup.querySelector('.bg-gradient-to-br');
+    modal.style.transform = 'scale(0.8)';
+    modal.style.opacity = '0';
+    
+    setTimeout(() => {
+      modal.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      modal.style.transform = 'scale(1)';
+      modal.style.opacity = '1';
+    }, 10);
+  }
+
+  function resetGame(){
+    currentRound=1; score=0; combo=1.0; missionStreak=0; correctCount=0;
+    hintUsedThisRound=false; lock=false; seed = Date.now()>>>0;
+    currentQuestion = makeRound();
+    updateDisplays(); renderQuestion();
+  }
+
+  /* ---------------- 이벤트 ---------------- */
+  document.getElementById("hint-btn").addEventListener("click", useHint);
+  document.getElementById("reset-btn").addEventListener("click", resetGame);
+  document.getElementById("next-btn").addEventListener("click", ()=>{
+    lock=false; next();
+  });
+
+  /* ---------------- 시작 ---------------- */
+  (function init(){
+    currentQuestion = makeRound();
+    updateDisplays();
+    renderQuestion();
+  })();
+</script>
+</body>
+</html> 
