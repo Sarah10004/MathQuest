@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="#111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- body -->
+    <rect x="40" y="56" rx="36" ry="36" width="176" height="140" fill="#7fe0da"/>
+    <!-- belly -->
+    <rect x="78" y="132" rx="20" ry="20" width="100" height="56" fill="#c9f4ef"/>
+    <!-- eyes & mouth -->
+    <circle cx="96" cy="110" r="4" fill="#111" stroke="none"/>
+    <circle cx="160" cy="110" r="4" fill="#111" stroke="none"/>
+    <path d="M102 126c12 10 40 10 52 0" stroke="#111"/>
+    <!-- horns -->
+    <path d="M78 62l-10-14 12-6 8 14z" fill="#ffd166"/>
+    <path d="M178 62l10-14-12-6-8 14z" fill="#ffd166"/>
+    <!-- inner ear bumps -->
+    <circle cx="60" cy="84" r="10" fill="#7fe0da"/>
+    <circle cx="196" cy="84" r="10" fill="#7fe0da"/>
+    <!-- wings -->
+    <path d="M44 132c-14 2-20 8-22 18 10-2 16-2 26 6 8-6 8-16-4-24z" fill="#b8e1ff"/>
+    <path d="M212 132c14 2 20 8 22 18-10-2-16-2-26 6-8-6-8-16 4-24z" fill="#b8e1ff"/>
+    <!-- spikes -->
+    <path d="M100 60l-10-10 10-8 10 10z" fill="#73cf76"/>
+    <path d="M126 48l-10-10 10-8 10 10z" fill="#73cf76"/>
+    <path d="M152 60l10-10-10-8-10 10z" fill="#73cf76"/>
+    <!-- tail -->
+    <path d="M210 182c18 8 24 10 30 8-6 10-18 12-30 8" fill="#7fe0da"/>
+    <path d="M240 198l8-6-4-8" />
+    <!-- legs -->
+    <rect x="76" y="196" width="28" height="28" rx="6" fill="#7fe0da"/>
+    <rect x="152" y="196" width="28" height="28" rx="6" fill="#7fe0da"/>
+    <!-- feet accents -->
+    <rect x="82" y="214" width="16" height="6" rx="3" fill="#ff9ac6"/>
+    <rect x="158" y="214" width="16" height="6" rx="3" fill="#ff9ac6"/>
+    <!-- blush -->
+    <circle cx="80" cy="124" r="6" fill="#ff9ac6" stroke="none"/>
+    <circle cx="176" cy="124" r="6" fill="#ff9ac6" stroke="none"/>
+  </g>
+</svg>
